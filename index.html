@@ -336,7 +336,7 @@ function screenSets(){
     ${rankCard(secGame, secLabel(SEC)+" — reyting")}
     <div class="card">
       <div class="row">
-        <button class="btn ghost" id="tosec">Boshqa qismga o'tish</button>
+        <button class="btn ghost" id="tosec2">Boshqa qismga o'tish</button>
         <button class="btn ghost" id="reset">Hamma natijamni tozalash</button>
       </div>
     </div>`;
@@ -344,7 +344,7 @@ function screenSets(){
   const r=document.getElementById('res'); if(r) r.onclick=()=>{state.set=setByUid(last.uid);startRound(last.round);};
   const rv=document.getElementById('rev'); if(rv) rv.onclick=()=>startReview(secWrong(),null);
   const rl=document.getElementById('reload'); if(rl) rl.onclick=async()=>{ delete TOPS[secGame]; delete TOPERR[secGame]; screenSets(); await fetchTop(secGame); screenSets(); };
-  document.getElementById('tosec').onclick=screenSections;
+  document.getElementById('tosec2').onclick=screenSections;
   document.getElementById('reset').onclick=()=>{
     if(confirm('Barcha natijangiz (ikkala qism) o\'chiriladi. Davom etamizmi?')){ DB.users[DB.current]=blankUser(); save(); screenSets(); }
   };
