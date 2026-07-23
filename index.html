@@ -141,24 +141,29 @@ const ALLSETS = SECTIONS.flatMap(s=>s.sets);
 let SEC = SECTIONS[0].id;                 // joriy bo'lim
 function curSets(){ return SECTIONS.find(x=>x.id===SEC).sets; }
 function secLabel(id){ return SECTIONS.find(x=>x.id===id).label; }
+function secWordCount(id){ return SECTIONS.find(x=>x.id===id).sets.reduce((a,b)=>a+b.words.length,0); }
 
 /* ============ server (umumiy reyting) ============ */
 const API='https://gogeup-soz-reyting.online-koreys-tili.workers.dev';
 const GAME='topik-soz-v4';   // so'zlar almashgani uchun reyting noldan
-let TOP=null, TOP_ERR=false;
+let TOPS={}, TOPERR={};   // reyting kesh: game nomi -> rows / xato
 
 async function pushScore(){
-  const s=userScore(DB.current);
-  try{
-    await fetch(API+'/score',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({game:GAME,name:DB.current,ok:s.ok,done:s.done})});
-  }catch(e){ /* internet yo'q — natija telefonda saqlanib turaveradi */ }
+  const games=[GAME, ...SECTIONS.map(sec=>GAME+'-'+sec.id)];
+  for(const g of games){
+    const secId = g===GAME ? undefined : g.slice(GAME.length+1);
+    const s=userScore(DB.current, secId);
+    try{
+      await fetch(API+'/score',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({game:g,name:DB.current,ok:s.ok,done:s.done})});
+    }catch(e){ /* internet yo'q — natija telefonda saqlanib turaveradi */ }
+  }
 }
-async function fetchTop(){
+async function fetchTop(game){
   try{
-    const r=await fetch(API+'/top?game='+GAME);
-    const d=await r.json(); TOP=d.rows||[]; TOP_ERR=false;
-  }catch(e){ TOP=null; TOP_ERR=true; }
+    const r=await fetch(API+'/top?game='+game);
+    const d=await r.json(); TOPS[game]=d.rows||[]; TOPERR[game]=false;
+  }catch(e){ TOPS[game]=null; TOPERR[game]=true; }
 }
 
 /* ============ saqlash ============ */
@@ -224,10 +229,11 @@ function wrongOf(s){
   return out;
 }
 function secWrong(){ return curSets().flatMap(s=>wrongOf(s)); }
-function userScore(name){
+function userScore(name, secId){
   const u=DB.users[name]; if(!u) return {ok:0,done:0};
   let ok=0,done=0;
-  ALLSETS.forEach(s=>{ const a=u.stats[s.uid]; if(!a||Array.isArray(a)) return;
+  const sets = secId ? SECTIONS.find(x=>x.id===secId).sets : ALLSETS;
+  sets.forEach(s=>{ const a=u.stats[s.uid]; if(!a||Array.isArray(a)) return;
     s.words.forEach(w=>{ const v=a[w[0]]; if(v!==undefined&&v!==null){done++; if(v===true) ok++;} }); });
   return {ok,done};
 }
@@ -270,7 +276,7 @@ function whoBar(showSecLink){
 /* ============ bo'lim tanlash (43~44 / 46~47) ============ */
 function screenSections(){
   whoBar(false);
-  if(TOP===null && !TOP_ERR) fetchTop().then(()=>{ if(document.getElementById('reload')) screenSections(); });
+  if(TOPS[GAME]===undefined && !TOPERR[GAME]) fetchTop(GAME).then(()=>{ if(document.getElementById('reload')) screenSections(); });
   const t=totalStat();
   app.innerHTML=`
     ${SAVE_OK?'':'<div class="warn">Diqqat: bu brauzerda natija saqlanmayapti.</div>'}
@@ -291,15 +297,16 @@ function screenSections(){
       <div class="score">${t.ok} / ${t.all}</div>
       <p class="hint">${t.no} ta xato · ${t.all-t.ok-t.no} ta so'z hali ishlanmagan</p>
     </div>
-    ${rankCard()}`;
+    ${rankCard(GAME, 'Umumiy reyting')}`;
   app.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{ SEC=b.dataset.s; screenSets(); });
-  const rl=document.getElementById('reload'); if(rl) rl.onclick=async()=>{ TOP=null;TOP_ERR=false;screenSections(); await fetchTop(); screenSections(); };
+  const rl=document.getElementById('reload'); if(rl) rl.onclick=async()=>{ delete TOPS[GAME]; delete TOPERR[GAME]; screenSections(); await fetchTop(GAME); screenSections(); };
 }
 
 /* ============ variantlar (joriy bo'lim ichida) ============ */
 function screenSets(){
   whoBar(true);
-  if(TOP===null && !TOP_ERR) fetchTop().then(()=>{ if(document.getElementById('reload')) screenSets(); });
+  const secGame=GAME+'-'+SEC;
+  if(TOPS[secGame]===undefined && !TOPERR[secGame]) fetchTop(secGame).then(()=>{ if(document.getElementById('reload')) screenSets(); });
   const t=secStat(), u=U(), aw=secWrong();
   const sets=curSets();
   const last=u.last && u.last.sec===SEC ? u.last : null;
@@ -326,7 +333,7 @@ function screenSets(){
       <p class="hint">${t.no} ta xato · ${t.all-t.ok-t.no} ta so'z hali ishlanmagan</p>
       ${aw.length?`<button class="btn" id="rev">Xato so'zlarni takrorlash (${aw.length} ta)</button>`:''}
     </div>
-    ${rankCard()}
+    ${rankCard(secGame, secLabel(SEC)+" — reyting")}
     <div class="card">
       <div class="row">
         <button class="btn ghost" id="tosec">Boshqa qismga o'tish</button>
@@ -336,26 +343,28 @@ function screenSets(){
   app.querySelectorAll('.set').forEach(b=>b.onclick=()=>{state.set=sets[+b.dataset.i];screenRounds();});
   const r=document.getElementById('res'); if(r) r.onclick=()=>{state.set=setByUid(last.uid);startRound(last.round);};
   const rv=document.getElementById('rev'); if(rv) rv.onclick=()=>startReview(secWrong(),null);
-  const rl=document.getElementById('reload'); if(rl) rl.onclick=async()=>{ TOP=null;TOP_ERR=false;screenSets(); await fetchTop(); screenSets(); };
+  const rl=document.getElementById('reload'); if(rl) rl.onclick=async()=>{ delete TOPS[secGame]; delete TOPERR[secGame]; screenSets(); await fetchTop(secGame); screenSets(); };
   document.getElementById('tosec').onclick=screenSections;
   document.getElementById('reset').onclick=()=>{
     if(confirm('Barcha natijangiz (ikkala qism) o\'chiriladi. Davom etamizmi?')){ DB.users[DB.current]=blankUser(); save(); screenSets(); }
   };
 }
 
-function rankCard(){
+function rankCard(game, title){
+  const top=TOPS[game], err=TOPERR[game];
+  const max = game===GAME ? 538 : secWordCount(game.slice(GAME.length+1));
   let body;
-  if(TOP===null && !TOP_ERR) body='<p class="hint">Yuklanmoqda...</p>';
-  else if(TOP_ERR) body='<p class="hint">Reytingni yuklab bo\'lmadi. Internetni tekshiring.</p>';
-  else if(!TOP.length) body='<p class="hint">Hali hech kim natija yubormagan. Birinchi bo\'ling.</p>';
+  if(top===undefined && !err) body='<p class="hint">Yuklanmoqda...</p>';
+  else if(err) body='<p class="hint">Reytingni yuklab bo\'lmadi. Internetni tekshiring.</p>';
+  else if(!top.length) body='<p class="hint">Hali hech kim natija yubormagan. Birinchi bo\'ling.</p>';
   else body=`<table class="rank">
         <tr><th>#</th><th>Ism</th><th class="num">To'g'ri</th><th class="num">Ishlangan</th></tr>
-        ${TOP.map((r,i)=>`<tr class="${r.name===DB.current?'me':''}">
-          <td>${i+1}</td><td>${r.name}</td><td class="num">${r.ok}</td><td class="num">${r.done} / 538</td></tr>`).join('')}
+        ${top.map((r,i)=>`<tr class="${r.name===DB.current?'me':''}">
+          <td>${i+1}</td><td>${r.name}</td><td class="num">${r.ok}</td><td class="num">${r.done} / ${max}</td></tr>`).join('')}
       </table>`;
   return `
     <div class="card">
-      <h2>Reyting</h2>
+      <h2>${title}</h2>
       <p class="hint">Barcha o'quvchilar. Raund tugagach natijangiz avtomatik yuboriladi.</p>
       ${body}
       <button class="btn ghost" id="reload">Yangilash</button>
@@ -411,7 +420,7 @@ function commit(){
   const u=U();
   state.list.forEach((w,j)=>{ u.stats[w.uid][w.ko] = !state.miss[j]; });
   save();
-  pushScore().then(()=>{ TOP=null; });
+  pushScore().then(()=>{ TOPS={}; TOPERR={}; });
 }
 
 /* ---- 1: tanishtiruv ---- */
