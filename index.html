@@ -406,7 +406,6 @@ function screenSets(){
     <div class="card">
       <div class="row">
         <button class="btn ghost" id="tosec">Boshqa bo'limga o'tish</button>
-        <button class="btn ghost" id="reset">Hamma natijamni tozalash</button>
       </div>
     </div>`;
   app.querySelectorAll('.set').forEach(b=>b.onclick=()=>{state.set=sets[+b.dataset.i];screenRounds();});
@@ -414,9 +413,6 @@ function screenSets(){
   const rv=document.getElementById('rev'); if(rv) rv.onclick=()=>startReview(secWrong(),null);
   wireRank(gSec(SEC), screenSets);
   document.getElementById('tosec').onclick=screenSections;
-  document.getElementById('reset').onclick=()=>{
-    if(confirm('Barcha natijangiz (듣기 va 읽기) o\'chiriladi. Davom etamizmi?')){ DB.users[DB.current]=blankUser(); save(); screenSets(); }
-  };
 }
 
 function rankCard(game, title, total){
