@@ -941,7 +941,7 @@ const MOCKS = [
 /* ---- MOCK: 도움 함수 ---- */
 function mockAllQuestions(mock){ return mock.groups.flatMap(g=>g.questions.map(q=>({...q, group:g}))); }
 function mockTotalCount(mock){ return mockAllQuestions(mock).length; }
-const mockState = { mock:null, answers:{}, startTime:0, timerId:null, remainSec:0, finished:false };
+const mockState = { mock:null, answers:{}, startTime:0, endTime:0, timerId:null, remainSec:0, finished:false };
 
 function mockGame(mockId){ return GAME+'-mock-'+mockId; }
 function encodeMockScore(score, seconds){
@@ -1019,13 +1019,17 @@ function screenMockIntro(mockId){
 function startMock(mockId){
   const m=MOCKS.find(x=>x.id===mockId);
   mockState.mock=m; mockState.answers={}; mockState.finished=false;
-  mockState.startTime=Date.now(); mockState.remainSec=m.durationSec;
+  mockState.startTime=Date.now();
+  mockState.endTime=mockState.startTime+m.durationSec*1000;
+  mockState.remainSec=m.durationSec;
   if(mockState.timerId) clearInterval(mockState.timerId);
   mockState.timerId=setInterval(mockTick, 1000);
   renderMockExam();
 }
+// vaqt haqiqiy soatdan hisoblanadi: telefon fon rejimiga o'tsa ham timer to'g'ri qoladi
 function mockTick(){
-  mockState.remainSec--;
+  if(mockState.finished) return;
+  mockState.remainSec=Math.round((mockState.endTime-Date.now())/1000);
   const tEl=document.getElementById('mocktime');
   if(tEl){
     tEl.textContent=mockFmtTime(mockState.remainSec);
@@ -1033,6 +1037,10 @@ function mockTick(){
   }
   if(mockState.remainSec<=0){ clearInterval(mockState.timerId); finishMock(); }
 }
+// boshqa ilovadan qaytganda vaqtni darhol yangilash
+document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden && mockState.mock && !mockState.finished && mockState.timerId) mockTick();
+});
 function mockFmtTime(s){ s=Math.max(0,s); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
 function renderMockExam(){
   const m=mockState.mock;
@@ -1119,7 +1127,7 @@ async function finishMock(){
   const m=mockState.mock;
   let score=0;
   mockAllQuestions(m).forEach(q=>{ if(mockState.answers[q.num]===q.correct) score+=2; });
-  const seconds=m.durationSec-mockState.remainSec;
+  const seconds=Math.min(m.durationSec, Math.max(0, m.durationSec-mockState.remainSec));
   window.scrollTo(0,0);
   app.innerHTML='<div class="card"><h2>채점 중...</h2></div>';
   const g=mockGame(m.id);
