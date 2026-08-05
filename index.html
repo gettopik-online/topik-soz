@@ -130,6 +130,12 @@
   .rev .a{font-size:14.5px;margin-top:6px}
   .rev .a b{font-weight:700}
   .opt.picked{border-color:var(--accent);border-width:2px;font-weight:600}
+  .mocktoast{position:fixed;left:50%;top:14px;transform:translateX(-50%) translateY(-140%);z-index:60;
+    background:var(--ink);color:#fff;border-radius:12px;padding:14px 22px;font-weight:700;font-size:16px;
+    box-shadow:0 10px 30px rgba(0,0,0,.3);transition:transform .35s ease;pointer-events:none;max-width:92vw;text-align:center}
+  .mocktoast.show{transform:translateX(-50%) translateY(0)}
+  .mocktoast.urgent{background:var(--no)}
+  .mocknote{background:#FFF7E6;border:1px solid #F0C36D;border-radius:11px;padding:14px 16px;margin-bottom:14px;font-size:15px}
   .mockgroup .ins{font-weight:700;color:var(--ink);margin-bottom:4px}
   .mockq + .mockq{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
 </style>
@@ -354,6 +360,7 @@ function screenTypes(){
   const t=totalStat();
   app.innerHTML=`
     ${SAVE_OK?'':'<div class="warn">Diqqat: bu brauzerda natija saqlanmayapti.</div>'}
+    ${mockNoteCard()}
     <div class="card">
       <h2>Qaysi qismdan boshlaymiz?</h2>
       <div class="sets" style="margin-top:12px">
@@ -386,6 +393,7 @@ function screenTypes(){
     ${rankCard(gTotal(),'Umumiy reyting',t.all)}`;
   app.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ TYPE=b.dataset.t; screenSections(); });
   document.getElementById('tomock').onclick=screenMockHub;
+  wireMockNote(screenTypes);
   wireRank(gTotal(), screenTypes);
 }
 
@@ -941,9 +949,18 @@ const MOCKS = [
 /* ---- MOCK: 도움 함수 ---- */
 function mockAllQuestions(mock){ return mock.groups.flatMap(g=>g.questions.map(q=>({...q, group:g}))); }
 function mockTotalCount(mock){ return mockAllQuestions(mock).length; }
-const mockState = { mock:null, answers:{}, startTime:0, endTime:0, timerId:null, remainSec:0, finished:false };
+const mockState = { mock:null, answers:{}, startTime:0, endTime:0, timerId:null, remainSec:0, finished:false, warned:[] };
+let MOCKNOTE=null;   // tark etilgan imtihon tiklanganda ko'rsatiladigan xabar
 
 function mockGame(mockId){ return GAME+'-mock-'+mockId; }
+// Worker bitta ismga bitta qator saqlaydi. Shuning uchun har bir urinish
+// alohida ism bilan yuboriladi: "Behruz", "Behruz (2)", "Behruz (3)"...
+function mockAttemptName(n){ return n<=1 ? DB.current : DB.current+' ('+n+')'; }
+function isMyMockRow(name){ return name===DB.current || name.indexOf(DB.current+' (')===0; }
+function mockAttemptCount(mockId){
+  const u=U(); if(!u || !u.mockAttempts) return 0;
+  return u.mockAttempts[mockId]||0;
+}
 function encodeMockScore(score, seconds){
   const t=Math.min(Math.max(Math.round(seconds),0),99999);
   return score*100000 + (99999-t);
@@ -953,11 +970,63 @@ function decodeMockScore(v){
   const seconds=99999-(v%100000);
   return {score, seconds};
 }
-async function pushMockScore(mockId, score, seconds){
+async function pushMockScore(mockId, score, seconds, attempt){
   try{
     await fetch(API+'/score',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({game:mockGame(mockId),name:DB.current,ok:encodeMockScore(score,seconds),done:100})});
+      body:JSON.stringify({game:mockGame(mockId),name:mockAttemptName(attempt),ok:encodeMockScore(score,seconds),done:100})});
   }catch(e){ /* internet yo'q */ }
+}
+
+/* ---- MOCK: tark etilgan imtihonni tiklash ----
+   Har bir javob localStorage'ga yozib boriladi. O'quvchi sahifani yopib
+   ketsa, keyingi kirishda o'sha javoblari bo'yicha baholanib reytingga
+   yuboriladi. Qayta ishlamoqchi bo'lsa boshidan boshlaydi. */
+function mockSavePending(){
+  const u=U(); if(!u) return;
+  u.mockPending={ mockId:mockState.mock.id, answers:mockState.answers,
+                  endTime:mockState.endTime, durationSec:mockState.mock.durationSec };
+  save();
+}
+function mockClearPending(){
+  const u=U(); if(!u) return;
+  u.mockPending=null; save();
+}
+function mockScoreOf(mock, answers){
+  let score=0;
+  mockAllQuestions(mock).forEach(q=>{ if(answers[q.num]===q.correct) score+=2; });
+  return score;
+}
+function mockNextAttempt(mockId){
+  const u=U(); if(!u) return 1;
+  if(!u.mockAttempts) u.mockAttempts={};
+  const n=(u.mockAttempts[mockId]||0)+1;
+  u.mockAttempts[mockId]=n; save();
+  return n;
+}
+// ilova ochilganda chaqiriladi
+async function mockRecoverPending(){
+  const u=U(); if(!u || !u.mockPending) return;
+  const p=u.mockPending;
+  const m=MOCKS.find(x=>x.id===p.mockId);
+  const answered=m?Object.keys(p.answers||{}).length:0;
+  if(!m || !answered){ mockClearPending(); return; }   // bitta ham javob yo'q — hisobga olinmaydi
+  const score=mockScoreOf(m, p.answers);
+  const seconds=Math.min(p.durationSec, Math.max(0, Math.round(p.durationSec-(p.endTime-Date.now())/1000)));
+  const n=mockNextAttempt(m.id);
+  mockClearPending();
+  MOCKNOTE=`지난번 <b>${m.label}</b> 시험이 끝까지 진행되지 않아, 그때까지 선택한 답안(${answered}문항)으로 채점되었습니다. — <b>${score} / 100</b> (${n}회차)`;
+  delete TOPS[mockGame(m.id)]; delete TOPERR[mockGame(m.id)];
+  await pushMockScore(m.id, score, seconds, n);
+}
+// Xabar o'quvchi o'zi yopmaguncha turadi (ekran qayta chizilsa ham yo'qolmaydi)
+function mockNoteCard(){
+  if(!MOCKNOTE) return '';
+  return `<div class="mocknote"><div>${MOCKNOTE}</div>
+    <button class="btn ghost" id="notex" style="margin-top:10px">확인</button></div>`;
+}
+function wireMockNote(redraw){
+  const b=document.getElementById('notex');
+  if(b) b.onclick=()=>{ MOCKNOTE=null; redraw(); };
 }
 function mockRankCard(mockId, title){
   const game=mockGame(mockId);
@@ -968,13 +1037,15 @@ function mockRankCard(mockId, title){
   else if(!rows || !rows.length) body='<p class="hint">아직 응시자가 없습니다. 첫 번째가 되어 보세요.</p>';
   else body=`<table class="rank">
         <tr><th>#</th><th>이름</th><th class="num">점수</th><th class="num">시간</th></tr>
-        ${rows.map((r,i)=>{ const d=decodeMockScore(r.ok); return `<tr class="${r.name===DB.current?'me':''}">
+        ${rows.map((r,i)=>{ const d=decodeMockScore(r.ok); return `<tr class="${isMyMockRow(r.name)?'me':''}">
           <td>${i+1}</td><td>${r.name}</td><td class="num">${d.score} / 100</td><td class="num">${Math.floor(d.seconds/60)}:${String(d.seconds%60).padStart(2,'0')}</td></tr>`; }).join('')}
       </table>`;
+  const n=mockAttemptCount(mockId);
   return `
     <div class="card">
       <h2>${title}</h2>
-      <p class="hint">점수가 높고 시간이 빠른 순으로 표시됩니다.</p>
+      <p class="hint">점수가 높고 시간이 빠른 순으로 표시됩니다. 응시할 때마다 이름 뒤에 회차가 표시됩니다.</p>
+      ${n>1?`<p class="hint" style="color:var(--accent);font-weight:600">회원님은 이 시험을 ${n}번 응시했습니다.</p>`:''}
       ${body}
       <button class="btn ghost" id="reload">새로고침</button>
     </div>`;
@@ -984,6 +1055,7 @@ function mockRankCard(mockId, title){
 function screenMockHub(){
   whoBar(0);
   app.innerHTML=`
+    ${mockNoteCard()}
     <div class="card">
       <h2>실전 모의고사</h2>
       <p class="hint">실제 TOPIK II 시험 형식입니다. 시작하면 타이머가 작동합니다.</p>
@@ -997,15 +1069,20 @@ function screenMockHub(){
     </div>`;
   app.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>screenMockIntro(b.dataset.m));
   document.getElementById('back').onclick=screenTypes;
+  wireMockNote(screenMockHub);
 }
 function screenMockIntro(mockId){
   const m=MOCKS.find(x=>x.id===mockId);
+  const done=mockAttemptCount(mockId);
   whoBar(0);
   app.innerHTML=`
+    ${mockNoteCard()}
     <div class="card">
       <h2>${m.label}</h2>
       <p class="hint">${mockTotalCount(m)}문항 · ${Math.floor(m.durationSec/60)}분 · 100점</p>
       <p class="hint" style="margin-top:10px">시작하면 타이머가 바로 작동합니다. 모든 문제를 다 풀거나 시간이 끝나면 자동으로 채점됩니다. 문제와 지문은 모두 한국어로 제공됩니다.</p>
+      <p class="hint" style="margin-top:10px">시험 도중에 나가더라도 그때까지 선택한 답안으로 채점되어 순위에 남습니다. 다시 응시하면 처음부터 시작하고, 순위에는 이전 기록과 나란히 회차별로 표시됩니다.</p>
+      ${done>0?`<p class="hint" style="margin-top:10px;color:var(--accent);font-weight:600">이미 ${done}번 응시했습니다. 지금 시작하면 ${done+1}회차가 됩니다.</p>`:''}
       <div class="row">
         <button class="btn" id="start">시작하기</button>
         <button class="btn ghost" id="back">뒤로</button>
@@ -1014,17 +1091,39 @@ function screenMockIntro(mockId){
     ${mockRankCard(mockId, m.label+' — 순위')}`;
   document.getElementById('start').onclick=()=>startMock(mockId);
   document.getElementById('back').onclick=screenMockHub;
+  wireMockNote(()=>screenMockIntro(mockId));
   wireRank(mockGame(mockId), ()=>screenMockIntro(mockId));
 }
 function startMock(mockId){
   const m=MOCKS.find(x=>x.id===mockId);
-  mockState.mock=m; mockState.answers={}; mockState.finished=false;
+  mockState.mock=m; mockState.answers={}; mockState.finished=false; mockState.warned=[];
   mockState.startTime=Date.now();
   mockState.endTime=mockState.startTime+m.durationSec*1000;
   mockState.remainSec=m.durationSec;
   if(mockState.timerId) clearInterval(mockState.timerId);
   mockState.timerId=setInterval(mockTick, 1000);
+  mockSavePending();
   renderMockExam();
+}
+/* vaqt ogohlantirishlari */
+const MOCKWARN=[{s:600,txt:'⏰ 10분 남았습니다'},{s:300,txt:'⏰ 5분 남았습니다'},{s:60,txt:'⏰ 1분 남았습니다',urgent:true}];
+function mockToast(txt, urgent){
+  let el=document.getElementById('mocktoast');
+  if(!el){ el=document.createElement('div'); el.id='mocktoast'; document.body.appendChild(el); }
+  el.className='mocktoast'+(urgent?' urgent':'');
+  el.textContent=txt;
+  void el.offsetWidth;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>el.classList.remove('show'), 4000);
+}
+function mockCheckWarn(){
+  MOCKWARN.forEach(w=>{
+    if(mockState.remainSec<=w.s && mockState.remainSec>0 && mockState.warned.indexOf(w.s)<0){
+      mockState.warned.push(w.s);
+      mockToast(w.txt, w.urgent);
+    }
+  });
 }
 // vaqt haqiqiy soatdan hisoblanadi: telefon fon rejimiga o'tsa ham timer to'g'ri qoladi
 function mockTick(){
@@ -1035,6 +1134,7 @@ function mockTick(){
     tEl.textContent=mockFmtTime(mockState.remainSec);
     tEl.parentElement.classList.toggle('low', mockState.remainSec<=300);
   }
+  mockCheckWarn();
   if(mockState.remainSec<=0){ clearInterval(mockState.timerId); finishMock(); }
 }
 // boshqa ilovadan qaytganda vaqtni darhol yangilash
@@ -1117,6 +1217,7 @@ function wireMockOptions(){
       app.querySelectorAll(`[data-q="${qn}"]`).forEach(x=>x.classList.toggle('picked', +x.dataset.o===oi));
       const c=document.getElementById('mockcount');
       if(c) c.textContent=Object.keys(mockState.answers).length+' / '+total;
+      mockSavePending();   // chiqib ketsa yo'qolmasligi uchun
     };
   });
 }
@@ -1125,17 +1226,18 @@ async function finishMock(){
   mockState.finished=true;
   if(mockState.timerId) clearInterval(mockState.timerId);
   const m=mockState.mock;
-  let score=0;
-  mockAllQuestions(m).forEach(q=>{ if(mockState.answers[q.num]===q.correct) score+=2; });
+  const score=mockScoreOf(m, mockState.answers);
   const seconds=Math.min(m.durationSec, Math.max(0, m.durationSec-mockState.remainSec));
   window.scrollTo(0,0);
   app.innerHTML='<div class="card"><h2>채점 중...</h2></div>';
+  const n=mockNextAttempt(m.id);
+  mockClearPending();
   const g=mockGame(m.id);
   delete TOPS[g]; delete TOPERR[g];
-  await pushMockScore(m.id, score, seconds);
-  renderMockResult(score, seconds);
+  await pushMockScore(m.id, score, seconds, n);
+  renderMockResult(score, seconds, n);
 }
-function renderMockResult(score, seconds){
+function renderMockResult(score, seconds, attempt){
   const m=mockState.mock;
   whoBar(0);
   app.innerHTML=`
@@ -1143,13 +1245,14 @@ function renderMockResult(score, seconds){
       <h2>${m.label} — 결과</h2>
       <div class="score">${score} / 100</div>
       <p class="hint">소요 시간: ${mockFmtTime(seconds)} · 정답 ${score/2}개 / ${mockTotalCount(m)}개</p>
+      <p class="hint">${attempt}회차 · 순위에는 <b>${mockAttemptName(attempt)}</b>(으)로 표시됩니다.</p>
     </div>
     ${mockRankCard(m.id, m.label+' — 순위')}
     <div class="card"><h2>전체 문항 해설</h2><p class="hint">모든 문항의 정답과 해설을 확인하세요.</p></div>
     ${m.groups.map(g=>renderMockGroup(g,true)).join('')}
     <div class="card"><div class="row"><button class="btn" id="tohub">모의고사 목록으로</button></div></div>`;
   document.getElementById('tohub').onclick=screenMockHub;
-  wireRank(mockGame(m.id), ()=>renderMockResult(score, seconds));
+  wireRank(mockGame(m.id), ()=>renderMockResult(score, seconds, attempt));
 }
 function renderMockReview(q, sharedAbove){
   const picked=mockState.answers[q.num];
@@ -1173,7 +1276,11 @@ function renderMockReview(q, sharedAbove){
 
 /* ---- start ---- */
 load();
-if(DB.current && DB.users[DB.current]) screenTypes(); else screenName();
+if(DB.current && DB.users[DB.current]){
+  screenTypes();
+  // tark etilgan imtihon bo'lsa: o'sha javoblar bo'yicha baholanib reytingga yuboriladi
+  mockRecoverPending().then(()=>{ if(MOCKNOTE) screenTypes(); });
+} else screenName();
 </script>
 </body>
 </html>
