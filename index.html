@@ -952,28 +952,31 @@ function mockTotalCount(mock){ return mockAllQuestions(mock).length; }
 const mockState = { mock:null, answers:{}, startTime:0, endTime:0, timerId:null, remainSec:0, finished:false, warned:[] };
 let MOCKNOTE=null;   // tark etilgan imtihon tiklanganda ko'rsatiladigan xabar
 
-function mockGame(mockId){ return GAME+'-mock-'+mockId; }
+/* Server ok/done qiymatlarini 100000 dan oshirmaydi (ortig'ini kesadi).
+   Shuning uchun ball va vaqt bitta songa siqilmaydi: ok = ball (0~100),
+   done = soniya (0~4200). Saralash bu yerda, brauzerda qilinadi.
+   -v2: eski, buzuq natijalar aralashmasligi uchun reyting nomi yangilandi. */
+function mockGame(mockId){ return GAME+'-mock-'+mockId+'-v2'; }
 // Worker bitta ismga bitta qator saqlaydi. Shuning uchun har bir urinish
 // alohida ism bilan yuboriladi: "Behruz", "Behruz (2)", "Behruz (3)"...
 function mockAttemptName(n){ return n<=1 ? DB.current : DB.current+' ('+n+')'; }
 function isMyMockRow(name){ return name===DB.current || name.indexOf(DB.current+' (')===0; }
 function mockAttemptCount(mockId){
-  const u=U(); if(!u || !u.mockAttempts) return 0;
-  return u.mockAttempts[mockId]||0;
+  const u=U(); if(!u || !u.mockAttempts2) return 0;
+  return u.mockAttempts2[mockId]||0;
 }
-function encodeMockScore(score, seconds){
-  const t=Math.min(Math.max(Math.round(seconds),0),99999);
-  return score*100000 + (99999-t);
-}
-function decodeMockScore(v){
-  const score=Math.floor(v/100000);
-  const seconds=99999-(v%100000);
-  return {score, seconds};
+// server qaytargan qatorlarni tartiblash: avval ball (ko'p), keyin vaqt (kam)
+function mockSortRows(rows, mock){
+  const maxSec=mock?mock.durationSec:4200;
+  return rows.filter(r=>typeof r.ok==='number' && r.ok>=0 && r.ok<=100 && r.done<=maxSec)
+             .sort((a,b)=> b.ok-a.ok || a.done-b.done);
 }
 async function pushMockScore(mockId, score, seconds, attempt){
   try{
     await fetch(API+'/score',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({game:mockGame(mockId),name:mockAttemptName(attempt),ok:encodeMockScore(score,seconds),done:100})});
+      body:JSON.stringify({game:mockGame(mockId),name:mockAttemptName(attempt),
+                           ok:Math.min(100,Math.max(0,Math.round(score))),
+                           done:Math.min(99999,Math.max(0,Math.round(seconds)))})});
   }catch(e){ /* internet yo'q */ }
 }
 
@@ -998,9 +1001,9 @@ function mockScoreOf(mock, answers){
 }
 function mockNextAttempt(mockId){
   const u=U(); if(!u) return 1;
-  if(!u.mockAttempts) u.mockAttempts={};
-  const n=(u.mockAttempts[mockId]||0)+1;
-  u.mockAttempts[mockId]=n; save();
+  if(!u.mockAttempts2) u.mockAttempts2={};
+  const n=(u.mockAttempts2[mockId]||0)+1;
+  u.mockAttempts2[mockId]=n; save();
   return n;
 }
 // ilova ochilganda chaqiriladi
@@ -1034,12 +1037,15 @@ function mockRankCard(mockId, title){
   let body;
   if(rows===undefined && !err) body='<p class="hint">불러오는 중...</p>';
   else if(err) body='<p class="hint">순위를 불러올 수 없습니다. 인터넷 연결을 확인하세요.</p>';
-  else if(!rows || !rows.length) body='<p class="hint">아직 응시자가 없습니다. 첫 번째가 되어 보세요.</p>';
-  else body=`<table class="rank">
+  else {
+    const list=mockSortRows(rows, MOCKS.find(x=>x.id===mockId));
+    if(!list.length) body='<p class="hint">아직 응시자가 없습니다. 첫 번째가 되어 보세요.</p>';
+    else body=`<table class="rank">
         <tr><th>#</th><th>이름</th><th class="num">점수</th><th class="num">시간</th></tr>
-        ${rows.map((r,i)=>{ const d=decodeMockScore(r.ok); return `<tr class="${isMyMockRow(r.name)?'me':''}">
-          <td>${i+1}</td><td>${r.name}</td><td class="num">${d.score} / 100</td><td class="num">${Math.floor(d.seconds/60)}:${String(d.seconds%60).padStart(2,'0')}</td></tr>`; }).join('')}
+        ${list.map((r,i)=>`<tr class="${isMyMockRow(r.name)?'me':''}">
+          <td>${i+1}</td><td>${r.name}</td><td class="num">${r.ok} / 100</td><td class="num">${mockFmtTime(r.done)}</td></tr>`).join('')}
       </table>`;
+  }
   const n=mockAttemptCount(mockId);
   return `
     <div class="card">
