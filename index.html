@@ -947,7 +947,8 @@ const MOCKS = [
 
 /* 듣기: audio to'xtovsiz ketadi, o'quvchi to'xtata/orqaga qaytara olmaydi.
    Har savolning 대본i faqat imtihon tugagach ko'rinadi. */
-{ id:"mock1-listen", round:"제1회", testType:"듣기", label:"제1회 듣기", durationSec:60*60, note:"01~50번",
+/* audio 65:50 — taymer undan biroz uzun, imtihonni audio tugashi yakunlaydi */
+{ id:"mock1-listen", round:"제1회", testType:"듣기", label:"제1회 듣기", durationSec:67*60, note:"01~50번",
   audio:"audio/mock1-listen.mp3",
   groups:[
 
@@ -1772,6 +1773,7 @@ function screenMockIntro(mockId){
       <h2>${m.label}</h2>
       <p class="hint">${m.note?m.note+' · ':''}${mockTotalCount(m)}문항 · ${Math.floor(m.durationSec/60)}분 · ${mockMaxScore(m)}점</p>
       <p class="hint" style="margin-top:10px">시작하면 타이머가 바로 작동합니다. 모든 문제를 다 풀거나 시간이 끝나면 자동으로 채점됩니다. 문제와 지문은 모두 한국어로 제공됩니다.</p>
+      ${m.audio?`<p class="hint" style="margin-top:10px">듣기 방송은 시작하면 멈추거나 되돌릴 수 없습니다. 방송이 끝나면 시험이 자동으로 종료되고 대본과 해설이 공개됩니다.</p>`:''}
       <p class="hint" style="margin-top:10px">시험 도중에 나가더라도 그때까지 선택한 답안으로 채점되어 순위에 남습니다. 다시 응시하면 처음부터 시작하고, 순위에는 이전 기록과 나란히 회차별로 표시됩니다.</p>
       ${done>0?`<p class="hint" style="margin-top:10px;color:var(--accent);font-weight:600">이미 ${done}번 응시했습니다. 지금 시작하면 ${done+1}회차가 됩니다.</p>`:''}
       <div class="row">
