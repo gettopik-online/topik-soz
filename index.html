@@ -439,15 +439,17 @@ function screenTypes(){
       <h2>실전 모의고사</h2>
       <p class="hint">실제 TOPIK II 시험 형식 · 타이머 제공</p>
       <div class="sets" style="margin-top:12px">
-        <button class="set" id="tomock">
-          <div class="n" style="font-size:24px">MOCK 제1회</div>
-          <div class="m">${MOCKS.length}개 시험</div>
-        </button>
+        ${mockRounds().map(r=>{
+          const have=MOCKTYPES.filter(t=>mockOf(r,t));
+          return `<button class="set" data-mr="${r}">
+            <div class="n" style="font-size:24px">MOCK ${r}</div>
+            <div class="m">${have.join(' · ')}</div>
+          </button>`;}).join('')}
       </div>
     </div>
     ${rankCard(gTotal(),'Umumiy reyting',t.all)}`;
   app.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ TYPE=b.dataset.t; screenSections(); });
-  document.getElementById('tomock').onclick=screenMockHub;
+  app.querySelectorAll('[data-mr]').forEach(b=>b.onclick=()=>screenMockRound(b.dataset.mr));
   wireMockNote(screenTypes);
   wireRank(gTotal(), screenTypes);
 }
@@ -935,7 +937,7 @@ function setDoneCard(){
    MOCK 시험 (실전 모의고사) — 읽기
    ============================================================ */
 const MOCKS = [
-{ id:"mock1-read", round:"제1회", testType:"읽기", label:"제1회 읽기", durationSec:70*60,
+{ id:"mock1-read", round:"제1회", testType:"읽기", label:"제1회 읽기", durationSec:70*60, note:"01~50번",
   groups:[
 
   { instruction:"※ [01~02] (　　　　)에 들어갈 말로 가장 알맞은 것을 고르십시오. (각 2점)",
@@ -1177,7 +1179,7 @@ const MOCKS = [
 
 /* 제2회는 01~31번만 수록되어 있다. 시간은 실제 시험(50문항 70분)의
    지문 분량 비율에 맞춰 35분으로 정했다. */
-{ id:"mock2-read", round:"제2회", testType:"읽기", label:"제2회 읽기 (01~31번)", durationSec:35*60,
+{ id:"mock2-read", round:"제2회", testType:"읽기", label:"제2회 읽기", durationSec:35*60, note:"01~31번",
   groups:[
 
   { instruction:"※ [01~02] (　　　　)에 들어갈 말로 가장 알맞은 것을 고르십시오. (각 2점)",
@@ -1438,7 +1440,16 @@ function mockRankCard(mockId, title){
     </div>`;
 }
 
-/* ---- MOCK: ekranlar ---- */
+/* ---- MOCK: ekranlar ----
+   Tuzilma: 실전 모의고사 → 제N회 → 듣기 / 쓰기 / 읽기 */
+const MOCKTYPES = ['듣기','쓰기','읽기'];              // har raund ichidagi tartib
+function mockRounds(){
+  const out=[];
+  MOCKS.forEach(m=>{ if(out.indexOf(m.round)<0) out.push(m.round); });
+  return out;
+}
+function mockOf(round, type){ return MOCKS.find(m=>m.round===round && m.testType===type); }
+
 function screenMockHub(){
   whoBar(0);
   app.innerHTML=`
@@ -1447,16 +1458,45 @@ function screenMockHub(){
       <h2>실전 모의고사</h2>
       <p class="hint">실제 TOPIK II 시험 형식입니다. 시작하면 타이머가 작동합니다.</p>
       <div class="sets" style="margin-top:12px">
-        ${MOCKS.map(m=>`<button class="set" data-m="${m.id}">
-          <div class="n" style="font-size:22px">${m.round}</div>
-          <div class="m">${m.label} · ${mockTotalCount(m)}문항</div>
-        </button>`).join('')}
+        ${mockRounds().map(r=>{
+          const have=MOCKTYPES.filter(t=>mockOf(r,t));
+          return `<button class="set" data-r="${r}">
+            <div class="n" style="font-size:24px">MOCK ${r}</div>
+            <div class="m">${have.join(' · ')}</div>
+          </button>`;}).join('')}
+      </div>
+      <div class="row"><button class="btn ghost" id="back">뒤로</button></div>
+    </div>`;
+  app.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>screenMockRound(b.dataset.r));
+  document.getElementById('back').onclick=screenTypes;
+  wireMockNote(screenMockHub);
+}
+function screenMockRound(round){
+  whoBar(0);
+  app.innerHTML=`
+    ${mockNoteCard()}
+    <div class="card">
+      <h2>MOCK ${round}</h2>
+      <p class="hint">영역을 선택하세요.</p>
+      <div class="sets" style="margin-top:12px">
+        ${MOCKTYPES.map(t=>{
+          const m=mockOf(round,t);
+          if(!m) return `<button class="set" disabled style="opacity:.45">
+            <div class="n" style="font-size:22px">${t}</div>
+            <div class="m">준비 중</div>
+          </button>`;
+          const n=mockAttemptCount(m.id);
+          return `<button class="set" data-m="${m.id}">
+            <div class="n" style="font-size:22px">${t}</div>
+            <div class="m">${m.note?m.note+' · ':''}${mockTotalCount(m)}문항 · ${Math.floor(m.durationSec/60)}분</div>
+            <div class="m" style="color:${n?'var(--accent)':'var(--muted)'}">${n?n+'번 응시함':'아직 응시하지 않음'}</div>
+          </button>`;}).join('')}
       </div>
       <div class="row"><button class="btn ghost" id="back">뒤로</button></div>
     </div>`;
   app.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>screenMockIntro(b.dataset.m));
-  document.getElementById('back').onclick=screenTypes;
-  wireMockNote(screenMockHub);
+  document.getElementById('back').onclick=screenMockHub;
+  wireMockNote(()=>screenMockRound(round));
 }
 function screenMockIntro(mockId){
   const m=MOCKS.find(x=>x.id===mockId);
@@ -1466,7 +1506,7 @@ function screenMockIntro(mockId){
     ${mockNoteCard()}
     <div class="card">
       <h2>${m.label}</h2>
-      <p class="hint">${mockTotalCount(m)}문항 · ${Math.floor(m.durationSec/60)}분 · ${mockMaxScore(m)}점</p>
+      <p class="hint">${m.note?m.note+' · ':''}${mockTotalCount(m)}문항 · ${Math.floor(m.durationSec/60)}분 · ${mockMaxScore(m)}점</p>
       <p class="hint" style="margin-top:10px">시작하면 타이머가 바로 작동합니다. 모든 문제를 다 풀거나 시간이 끝나면 자동으로 채점됩니다. 문제와 지문은 모두 한국어로 제공됩니다.</p>
       <p class="hint" style="margin-top:10px">시험 도중에 나가더라도 그때까지 선택한 답안으로 채점되어 순위에 남습니다. 다시 응시하면 처음부터 시작하고, 순위에는 이전 기록과 나란히 회차별로 표시됩니다.</p>
       ${done>0?`<p class="hint" style="margin-top:10px;color:var(--accent);font-weight:600">이미 ${done}번 응시했습니다. 지금 시작하면 ${done+1}회차가 됩니다.</p>`:''}
@@ -1477,7 +1517,7 @@ function screenMockIntro(mockId){
     </div>
     ${mockRankCard(mockId, m.label+' — 순위')}`;
   document.getElementById('start').onclick=()=>startMock(mockId);
-  document.getElementById('back').onclick=screenMockHub;
+  document.getElementById('back').onclick=()=>screenMockRound(m.round);
   wireMockNote(()=>screenMockIntro(mockId));
   wireRank(mockGame(mockId), ()=>screenMockIntro(mockId));
 }
@@ -1649,8 +1689,12 @@ function renderMockResult(score, seconds, attempt){
     ${mockRankCard(m.id, m.label+' — 순위')}
     <div class="card"><h2>전체 문항 해설</h2><p class="hint">모든 문항의 정답과 해설을 확인하세요.</p></div>
     ${m.groups.map(g=>renderMockGroup(g,true)).join('')}
-    <div class="card"><div class="row"><button class="btn" id="tohub">모의고사 목록으로</button></div></div>`;
-  document.getElementById('tohub').onclick=screenMockHub;
+    <div class="card"><div class="row">
+      <button class="btn" id="tohub">MOCK ${m.round}(으)로 돌아가기</button>
+      <button class="btn ghost" id="toall">모의고사 목록으로</button>
+    </div></div>`;
+  document.getElementById('tohub').onclick=()=>screenMockRound(m.round);
+  document.getElementById('toall').onclick=screenMockHub;
   wireRank(mockGame(m.id), ()=>renderMockResult(score, seconds, attempt));
 }
 function renderMockReview(q, sharedAbove){
