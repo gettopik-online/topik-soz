@@ -162,7 +162,7 @@
         <h1>Yuqori daraja so'zlari</h1>
       </div>
     </div>
-    <p class="lead">1085 ta so'z — 듣기 va 읽기 bo'limlari. Yuqori daraja (고급). Har raund 3 bosqich: tanishtiruv, variant tanlash, yozish.</p>
+    <p class="lead" id="lead">듣기 va 읽기 bo'limlari. Yuqori daraja (고급). Har raund 3 bosqich: tanishtiruv, variant tanlash, yozish.</p>
     <div class="who" id="who"></div>
   </header>
   <main id="app"></main>
@@ -195,7 +195,8 @@ const SECTIONS = [
 {id:"96",title:"96-TOPIK",sub:"49~50 · 누리호 발사",words:[["로켓","raketa"],["우주","koinot, kosmos"],["상공","yuqori havo, osmon"],["위성","sun'iy yo'ldosh"],["올려놓다","joylashtirmoq, chiqarmoq"],["발사되다","uchirilmoq"],["시각","vaqt, payt"],["콕 집어","aniq qilib, roppa-rosa"],["분 단위","daqiqa aniqligida"],["철저히","puxta, sinchiklab"],["계산하다","hisoblamoq"],["싣다","yuklamoq, ortmoq"],["정교하다","nozik, aniq"],["관측 자료","kuzatuv ma'lumotlari"],["제공하다","taqdim etmoq"],["영상 레이더","tasvirli radar"],["탑재되다","o'rnatilgan bo'lmoq"],["전력 소비","elektr sarfi"],["굉장하다","juda katta, zo'r"],["임무","vazifa, missiya"],["수행하다","bajarmoq"],["전력","elektr quvvati"],["태양 전지","quyosh batareyasi"],["부착하다","o'rnatmoq, yopishtirmoq"],["충전하다","quvvatlamoq"],["내내","davomida, boshdan-oxir"],["궤도","orbita"],["안착시키다","muvaffaqiyatli joylashtirmoq"],["움직임","harakat"],["따지다","hisobga olmoq, ko'rib chiqmoq"],["진입하다","kirmoq"],["시점","vaqt nuqtasi, payt"],["딱","aynan, roppa-rosa"],["예정이다","rejalashtirilgan"],["~는 편이다","...roq bo'lmoq (moyillik)"],["배경","sabab, zamin"],["과학적","ilmiy"],["우주선","kosmik kema"],["과학사적","fan tarixi nuqtai nazaridan"],["의미","ma'no, ahamiyat"],["정의하다","ta'riflamoq"],["일으키다","keltirib chiqarmoq"],["예측하다","bashorat qilmoq"],["천문학적","astronomik"],["토대로","asosida"],["해결 방법","yechim yo'li"],["제시하다","taqdim etmoq, ilgari surmoq"]]},
 {id:"102",title:"102-TOPIK",sub:"49~50 · 원형 감옥",words:[["최대 다수","eng ko'p son"],["행복","baxt"],["주창하다","ilgari surmoq, targ'ib qilmoq"],["효율성","samaradorlik"],["극대화하다","maksimallashtirmoq"],["공리주의","utilitarizm"],["토대로","asosida"],["구현되다","amalga oshirilmoq, gavdalanmoq"],["원형 감옥","panoptikon (aylana qamoqxona)"],["최소한","eng kam, minimal"],["감시","kuzatuv, nazorat"],["죄수","mahbus"],["행동","xatti-harakat"],["효율적","samarali"],["통제하다","nazorat qilmoq, jilovlamoq"],["교도소","qamoqxona"],["차용되다","o'zlashtirilmoq, olinmoq"],["구조","tuzilish"],["중앙","markaz"],["감시대","kuzatuv minorasi"],["세워지다","o'rnatilgan bo'lmoq"],["갇히다","qamalmoq"],["수용실","kamera (qamoq xonasi)"],["~을 중심으로","...ni markaz qilib"],["둥글게","aylana shaklida"],["배치되다","joylashtirilmoq"],["간수","qorovul, nazoratchi"],["꼭대기","cho'qqi, eng tepa"],["빛을 등지다","yorug'likka orqa o'girmoq"],["내려다보다","pastga qaramoq"],["역광","qarshi yorug'lik"],["어둡다","qorong'i"],["원리","tamoyil, prinsip"],["의식하다","anglamoq, sezmoq"],["규율","tartib-intizom"],["벗어나다","chetga chiqmoq, buzmoq"],["돌발 행동","kutilmagan xatti-harakat"],["스스로","o'z-o'zidan, o'zi"],["가두다","qamamoq"],["둘러싸이다","o'ralgan bo'lmoq"],["개념","tushuncha"],["적용하다","qo'llamoq"],["실재하다","haqiqatda mavjud bo'lmoq"],["사상","g'oya, ta'limot"],["유추하다","taxmin qilib xulosa chiqarmoq"],["인용하다","iqtibos keltirmoq"],["등장하다","paydo bo'lmoq"],["핵심","asosiy, o'zak"],["이해","tushunish"],["사례","misol, holat"],["분석하다","tahlil qilmoq"]]}
 ]},
-{id:"mocklisten1",type:"listen",label:"MOCK 제1회 · 듣기 so'zlari",sets:[
+/* bu bo'lim 듣기 ro'yxatida ko'rinmaydi — MOCK 제1회 ichida, 듣기 tagida turadi */
+{id:"mocklisten1",type:"listen",hidden:true,mockRound:"제1회",label:"MOCK 제1회 · 듣기 so'zlari",sets:[
 {id:"a",title:"01~16-savol",sub:"MOCK 제1회 듣기",words:[["여쭈다","so'ramoq (hurmat shakli)"],["야근하다","tungi/qo'shimcha smenada ishlamoq"],["휴게실","dam olish xonasi"],["판매량","sotuv hajmi"],["증가하다","ortmoq, ko'paymoq"],["상승하다","ko'tarilmoq"],["성능","ish unumi, quvvat"],["저렴하다","arzon"],["차례대로","navbatma-navbat"],["안색","yuz rangi, tusi"],["망치다","barbod qilmoq, buzmoq"],["속상하다","ranjimoq, ko'ngli buzilmoq"],["합격하다","imtihondan o'tmoq"],["깔끔하다","ozoda, saranjom"],["대중가요","estrada qo'shig'i"],["주제","mavzu"],["면접시험","suhbat imtihoni"],["고장 나다","buzilmoq, ishdan chiqmoq"],["서류","hujjat"],["진열대","vitrina, javon"],["상품","tovar, mahsulot"],["나머지","qolgani, qolgan qism"],["색상","rang, tus"],["취업","ishga joylashish"],["막히다","tiqilmoq (yo'l), to'silmoq"],["진행되다","o'tkazilmoq, davom etmoq"],["체험","sinab ko'rish, tajriba"],["품질","sifat"],["장기자랑","iste'dod ko'rigi"],["비롯하다","...ni qo'shib, ...dan boshlab"],["음식물","yeyish-ichish mahsulotlari"],["양해","tushunish bilan qarash"],["열람실","o'quv zali"],["흡연 구역","chekish uchun ajratilgan joy"],["휴관일","muassasaning dam olish kuni"],["선보이다","taqdim etmoq, namoyish qilmoq"],["특징","o'ziga xos belgi"],["출판사","nashriyot"],["검색하다","qidirmoq"],["구매","xarid qilish"]]},
 {id:"b",title:"17~32-savol",sub:"MOCK 제1회 듣기",words:[["체계적","tizimli"],["구체적","aniq, batafsil"],["지식","bilim"],["전달하다","yetkazmoq"],["유용하다","foydali"],["과장되다","bo'rttirilmoq"],["장점","afzallik"],["도저히","aslo, sira (inkor bilan)"],["일반인","oddiy odam, mutaxassis bo'lmagan"],["인정받다","e'tirof etilmoq"],["상당히","ancha, sezilarli darajada"],["만족하다","qanoat hosil qilmoq"],["소용","foyda, naf"],["평론가","munaqqid, sharhlovchi"],["기준","mezon"],["흥행","kassa muvaffaqiyati"],["작품성","badiiy qiymat"],["선호하다","afzal ko'rmoq"],["시청자","tomoshabin"],["나름대로","o'zicha, o'ziga yarasha"],["실종","bedarak yo'qolish"],["신고","xabar berish, ariza"],["평소","odatdagi kunlarda, odatda"],["추적하다","izidan bormoq, kuzatib topmoq"],["지인","tanish kishi"],["심각해지다","jiddiylashmoq"],["재활용","qayta ishlatish"],["효과","samara"],["시각","nuqtai nazar, qarash"],["접근하다","yondashmoq"],["처리하다","hal qilmoq, ishlov bermoq"],["일회용","bir martalik"],["고령화","aholining qarishi"],["정책","siyosat, chora-tadbir"],["혜택","imtiyoz, qulaylik"],["파악하다","aniqlamoq, anglab olmoq"],["일자리","ish o'rni"],["저절로","o'z-o'zidan"],["예식장","to'yxona, marosim zali"],["분위기","muhit, kayfiyat"]]},
 {id:"c",title:"33~44-savol",sub:"MOCK 제1회 듣기",words:[["증상","alomat, belgi"],["소화 기관","hazm a'zolari"],["원활하다","ravon, silliq"],["배출하다","chiqarmoq"],["수분","namlik, suv"],["딱딱하다","qattiq"],["방치하다","e'tiborsiz qoldirmoq"],["질병","kasallik"],["적절하다","munosib, o'rinli"],["처방","dori tavsiyasi, retsept"],["학용품","o'quv qurollari"],["발명되다","ixtiro qilinmoq"],["흑연","grafit"],["부러지다","sinmoq"],["형태","shakl, ko'rinish"],["가루","kukun, un"],["생산되다","ishlab chiqarilmoq"],["주식 투자","aksiyaga sarmoya kiritish"],["도박","qimor"],["오해하다","noto'g'ri tushunmoq"],["단기","qisqa muddat"],["장기","uzoq muddat"],["기업","korxona"],["적금","jamg'arma hisobi"],["이익","foyda"],["난민","qochqin"],["제각각","har biri har xil"],["대처하다","chora ko'rmoq, bardosh bermoq"],["위상","mavqe, obro'"],["거주하다","yashamoq, istiqomat qilmoq"],["이탈하다","chetga chiqmoq, ajralib ketmoq"],["감시","nazorat, kuzatuv"],["범죄","jinoyat"],["치안","jamoat tartibi"],["강화하다","kuchaytirmoq"],["마련하다","tayyorlamoq, yo'lga qo'ymoq"],["식량","oziq-ovqat zaxirasi"],["전망되다","kutilmoq, bashorat qilinmoq"],["영양소","ozuqa moddasi"],["주목받다","e'tibor qozonmoq"]]},
@@ -264,13 +265,20 @@ const TESTS = {
 // SECTIONS data2.js dan keladi. Har set'ga secId qo'shamiz, global SETS = hamma set.
 SECTIONS.forEach(sec=>sec.sets.forEach(s=>{ s.secId=sec.id; s.uid=sec.id+'-'+s.id; }));
 const ALLSETS = SECTIONS.flatMap(s=>s.sets);
+// sarlavhadagi so'z soni qo'lda emas, avtomatik hisoblanadi
+(function(){
+  const n=ALLSETS.reduce((a,s)=>a+s.words.length,0);
+  const el=document.getElementById('lead');
+  if(el) el.textContent=n+" ta so'z — "+el.textContent;
+})();
 const TYPES = [
   {id:'listen', label:'듣기', uz:'Tinglash'},
   {id:'read',   label:'읽기', uz:"O'qish"},
 ];
 let TYPE = null;                          // joriy tur (listen/read)
 let SEC  = null;                          // joriy bo'lim
-function typeSections(t){ return SECTIONS.filter(s=>s.type===t); }
+function typeSections(t){ return SECTIONS.filter(s=>s.type===t && !s.hidden); }
+function mockWordSection(round){ return SECTIONS.find(s=>s.mockRound===round); }
 function typeLabel(t){ const x=TYPES.find(y=>y.id===t); return x.label+' · '+x.uz; }
 function curSets(){ return SECTIONS.find(x=>x.id===SEC).sets; }
 function secLabel(id){ return SECTIONS.find(x=>x.id===id).label; }
@@ -541,7 +549,10 @@ function screenSets(){
   const r=document.getElementById('res'); if(r) r.onclick=()=>{state.set=setByUid(last.uid);startRound(last.round);};
   const rv=document.getElementById('rev'); if(rv) rv.onclick=()=>startReview(secWrong(),null);
   wireRank(gSec(SEC), screenSets);
-  document.getElementById('tosec').onclick=screenSections;
+  // mock so'zlaridan chiqilganda o'z mockiga qaytadi
+  const cur=SECTIONS.find(x=>x.id===SEC);
+  document.getElementById('tosec').onclick=
+    (cur && cur.mockRound) ? ()=>screenMockRound(cur.mockRound) : screenSections;
 }
 
 function rankCard(game, title, total){
@@ -1763,9 +1774,21 @@ function screenMockRound(round){
             <div class="m" style="color:${n?'var(--accent)':'var(--muted)'}">${n?n+'번 응시함':'아직 응시하지 않음'}</div>
           </button>`;}).join('')}
       </div>
+      ${(()=>{ const ws=mockWordSection(round); if(!ws) return '';
+        const n=ws.sets.reduce((a,s)=>a+s.words.length,0);
+        const prev=SEC; SEC=ws.id; const st=secStat(); SEC=prev;
+        return `<div class="sets" style="margin-top:12px">
+          <button class="set" id="towords">
+            <div class="n" style="font-size:20px">듣기 단어 연습</div>
+            <div class="m">방송에 나온 중고급 단어 ${n}개 · ${ws.sets.length}개 묶음</div>
+            <div class="m" style="color:${st.done?'var(--accent)':'var(--muted)'}">${st.done?st.ok+'/'+st.all+" to'g'ri":'아직 시작하지 않음'}</div>
+          </button>
+        </div>`; })()}
       <div class="row"><button class="btn ghost" id="back">뒤로</button></div>
     </div>`;
   app.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>screenMockIntro(b.dataset.m));
+  const tw=document.getElementById('towords');
+  if(tw) tw.onclick=()=>{ const ws=mockWordSection(round); TYPE=ws.type; SEC=ws.id; screenSets(); };
   document.getElementById('back').onclick=screenMockHub;
   wireMockNote(()=>screenMockRound(round));
 }
