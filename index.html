@@ -122,6 +122,18 @@
   .chartlabels{display:flex;gap:8px;padding:0 4px;margin-top:8px}
   .chartlabels div{flex:1;text-align:center;font-size:12.5px;color:var(--muted)}
   .orderlist div{background:#F7F9FC;border:1px solid var(--line);border-radius:9px;padding:11px 14px;margin-bottom:7px;font-size:15px}
+  /* ==== 50 so'z testi ==== */
+  .wtbar{height:8px;background:var(--line);border-radius:999px;overflow:hidden;margin:14px 0 4px}
+  .wtbar i{display:block;height:100%;background:var(--accent);transition:width .2s linear}
+  .wtbar.low i{background:var(--no)}
+  .wtword{font-size:30px;font-weight:800;text-align:center;margin:22px 0 6px;line-height:1.35}
+  .wtsub{text-align:center;color:var(--muted);font-size:15px;margin-bottom:6px}
+  .wtcount{display:flex;justify-content:space-between;font-size:15px;color:var(--muted)}
+  .wtinput{width:100%;font:inherit;font-size:22px;text-align:center;padding:14px;border:1px solid var(--line);
+    border-radius:11px;background:var(--card);color:inherit;margin-top:14px}
+  .wtinput:focus{outline:none;border-color:var(--accent)}
+  .wtlock{background:#FFF7E6;border:1px solid #F0C36D;border-radius:11px;padding:18px;text-align:center}
+  .wtrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .qimg{margin:12px 0;text-align:center}
   .qimg img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:10px}
   .scriptbox{background:#FFF7E6;border:1px solid #F0C36D;border-radius:11px;padding:16px 18px;margin:12px 0;font-size:15.5px;line-height:1.9}
@@ -532,6 +544,13 @@ function screenSets(){
             <div class="m" style="color:${st.done?'var(--ink)':'var(--muted)'}">${st.done? st.ok+'/'+st.all+" to'g'ri · "+st.no+' xato':'boshlanmagan'}</div>
           </button>`}).join('')}
       </div>
+      ${SEC===WT.secId?`<div class="sets" style="margin-top:12px">
+        <button class="set" id="towt">
+          <div class="n" style="font-size:20px">🔒 ${WT.title}</div>
+          <div class="m">${WT.choose+WT.write} ta savol tasodifiy tanlanadi</div>
+          <div class="m" style="color:var(--muted)">Ustoz ruxsat berganda ochiladi</div>
+        </button>
+      </div>`:''}
     </div>
     <div class="card">
       <h2>${secLabel(SEC)} — statistika</h2>
@@ -548,6 +567,7 @@ function screenSets(){
   app.querySelectorAll('.set').forEach(b=>b.onclick=()=>{state.set=sets[+b.dataset.i];screenRounds();});
   const r=document.getElementById('res'); if(r) r.onclick=()=>{state.set=setByUid(last.uid);startRound(last.round);};
   const rv=document.getElementById('rev'); if(rv) rv.onclick=()=>startReview(secWrong(),null);
+  const tw2=document.getElementById('towt'); if(tw2) tw2.onclick=screenWordTest;
   wireRank(gSec(SEC), screenSets);
   // mock so'zlaridan chiqilganda o'z mockiga qaytadi
   const cur=SECTIONS.find(x=>x.id===SEC);
@@ -1722,6 +1742,289 @@ function mockRankCard(mockId, title){
     </div>`;
 }
 
+/* ============ 50 so'z testi ============
+   156 so'zdan 50 tasi tasodifiy. 1~30 variant tanlash (10 s),
+   31~50 yozish (15 s). Vaqt tugasa savol o'zi almashadi.
+   Ustoz masofadan ochib/yopib turadi (Worker kodiga tegmasdan). */
+const WT = { id:'wt1', secId:'mocklisten1', title:"50 so'z testi",
+             choose:30, write:20, chooseSec:10, writeSec:15, pass:'ustoz2026' };
+function wtGame(){ return GAME+'-wt-'+WT.id; }
+function wtGateGame(){ return GAME+'-gate-'+WT.id; }
+function wtRec(){ const u=U(); return (u&&u.wt&&u.wt[WT.id])||null; }
+
+/* ---- ustoz kaliti ---- */
+let WTGATE = undefined;   // {open, until} | null (bog'lanmadi)
+async function wtLoadGate(){
+  try{
+    const r=await fetch(API+'/top?game='+wtGateGame()+'&cb='+Date.now());
+    const d=await r.json();
+    const row=(d.rows||[]).find(x=>x.name==='GATE');
+    if(!row || !row.ok){ WTGATE={open:false, until:0}; return WTGATE; }
+    const until=row.t + row.ok*60000;          // ok = necha daqiqaga ochilgani
+    WTGATE={open:Date.now()<until, until};
+  }catch(e){ WTGATE=null; }
+  return WTGATE;
+}
+async function wtSetGate(minutes){
+  try{
+    await fetch(API+'/score',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({game:wtGateGame(), name:'GATE', ok:Math.max(0,Math.round(minutes)), done:1})});
+  }catch(e){}
+  WTGATE=undefined;
+  await wtLoadGate();
+}
+
+/* ---- savollarni tayyorlash ---- */
+function wtAllWords(){
+  const sec=SECTIONS.find(s=>s.id===WT.secId);
+  return sec ? sec.sets.flatMap(s=>s.words.map(w=>({ko:w[0], uz:w[1]}))) : [];
+}
+function wtBuild(){
+  const pool=shuffle(wtAllWords());
+  const pick=pool.slice(0, WT.choose+WT.write);
+  return pick.map((w,i)=>{
+    if(i<WT.choose){
+      const others=shuffle(pool.filter(x=>x.ko!==w.ko)).slice(0,3).map(x=>x.ko);
+      return {ko:w.ko, uz:w.uz, type:'choose', options:shuffle([w.ko,...others])};
+    }
+    return {ko:w.ko, uz:w.uz, type:'write'};
+  });
+}
+function wtSave(){
+  const u=U(); if(!u) return;
+  if(!u.wt) u.wt={};
+  u.wt[WT.id]={items:wtState.items, answers:wtState.answers, i:wtState.i, spent:wtState.spent};
+  save();
+}
+function wtClear(){ const u=U(); if(u&&u.wt) delete u.wt[WT.id]; save(); }
+function wtAttempt(){
+  const u=U(); if(!u) return 1;
+  if(!u.wtAttempts) u.wtAttempts={};
+  const n=(u.wtAttempts[WT.id]||0)+1; u.wtAttempts[WT.id]=n; save();
+  return n;
+}
+function wtAttemptCount(){ const u=U(); return (u&&u.wtAttempts&&u.wtAttempts[WT.id])||0; }
+
+/* ---- kirish ekrani ---- */
+let wtState=null;
+function screenWordTest(){
+  whoBar(2);
+  const done=wtAttemptCount(), pend=wtRec();
+  app.innerHTML=`
+    <div class="card">
+      <h2>${WT.title}</h2>
+      <p class="hint">MOCK 제1회 듣기 so'zlaridan ${WT.choose+WT.write} tasi tasodifiy tanlanadi.</p>
+      <p class="hint" style="margin-top:8px">1~${WT.choose}-savol: ma'nosi beriladi, koreyschasini <b>tanlaysiz</b> (${WT.chooseSec} soniya).<br>
+        ${WT.choose+1}~${WT.choose+WT.write}-savol: koreyschasini <b>yozasiz</b> (${WT.writeSec} soniya).</p>
+      <p class="hint" style="margin-top:8px">Vaqt tugasa savol o'zi almashadi, orqaga qaytib bo'lmaydi.</p>
+      ${done?`<p class="hint" style="margin-top:8px;color:var(--accent);font-weight:600">Siz bu testni ${done} marta ishladingiz.</p>`:''}
+      <div id="wtgate" style="margin-top:14px"><p class="hint">Holat tekshirilmoqda...</p></div>
+      <div class="row" style="margin-top:12px"><button class="btn ghost" id="back">Orqaga</button></div>
+    </div>
+    ${wtRankCard()}`;
+  document.getElementById('back').onclick=()=>screenSets();
+  wireRank(wtGame(), screenWordTest);
+  wtRenderGate(!!pend);
+  if(WTGATE===undefined) wtLoadGate().then(()=>wtRenderGate(!!pend));
+}
+function wtRenderGate(hasPending){
+  const box=document.getElementById('wtgate'); if(!box) return;
+  if(WTGATE===undefined){ box.innerHTML='<p class="hint">Holat tekshirilmoqda...</p>'; return; }
+  if(WTGATE===null){
+    box.innerHTML=`<div class="wtlock"><b>Internet bilan bog'lanib bo'lmadi</b>
+      <p class="hint" style="margin-top:6px">Test ustoz ruxsatini talab qiladi, shuning uchun internet kerak.</p></div>
+      <div class="row" style="margin-top:10px"><button class="btn ghost" id="wtretry">Qayta tekshirish</button></div>`;
+  } else if(!WTGATE.open){
+    box.innerHTML=`<div class="wtlock"><b>🔒 Test hali ochilmagan</b>
+      <p class="hint" style="margin-top:6px">Ustoz ruxsat berganda shu tugma jonlanadi. Shu sahifada kutib turing.</p></div>
+      <div class="row" style="margin-top:10px"><button class="btn ghost" id="wtretry">Tekshirish</button></div>`;
+  } else {
+    const qoldi=Math.max(0,Math.round((WTGATE.until-Date.now())/60000));
+    box.innerHTML=`<div class="wtlock" style="background:#EAF7EE;border-color:var(--ok)">
+        <b style="color:var(--ok)">✓ Test ochiq</b>
+        <p class="hint" style="margin-top:6px">Yopilishiga ~${qoldi} daqiqa qoldi.</p></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="wtstart">${hasPending?'Davom etish':'Boshlash'}</button>
+      </div>`;
+  }
+  const rt=document.getElementById('wtretry');
+  if(rt) rt.onclick=async()=>{ WTGATE=undefined; wtRenderGate(hasPending); await wtLoadGate(); wtRenderGate(hasPending); };
+  const st=document.getElementById('wtstart');
+  if(st) st.onclick=()=>wtStart(hasPending);
+  // ochilishini kutayotgan bo'lsa, har 15 soniyada o'zi tekshiradi
+  clearTimeout(window.__wtPoll);
+  if(WTGATE && !WTGATE.open){
+    window.__wtPoll=setTimeout(async()=>{ if(document.getElementById('wtgate')){ await wtLoadGate(); wtRenderGate(hasPending); } },15000);
+  }
+}
+
+/* ---- test ---- */
+function wtStart(resume){
+  const pend=resume?wtRec():null;
+  wtState = (pend && pend.items) ?
+    {items:pend.items, answers:pend.answers||[], i:pend.i||0, spent:pend.spent||0, finished:false, timerId:null} :
+    {items:wtBuild(), answers:[], i:0, spent:0, finished:false, timerId:null};
+  wtSave();
+  wtRenderQ();
+}
+function wtRenderQ(){
+  if(wtState.i>=wtState.items.length){ wtFinish(); return; }
+  const q=wtState.items[wtState.i];
+  const lim=q.type==='choose'?WT.chooseSec:WT.writeSec;
+  wtState.qEnd=Date.now()+lim*1000;
+  whoEl.innerHTML=`<span>O'quvchi: <b>${DB.current}</b></span><span class="hint">Test davom etmoqda</span>`;
+  app.innerHTML=`
+    <div class="card">
+      <div class="wtcount"><span>${wtState.i+1} / ${wtState.items.length}</span>
+        <span>${q.type==='choose'?'Tanlash':'Yozish'} · ${lim} s</span></div>
+      <div class="wtbar" id="wtbar"><i style="width:100%"></i></div>
+      <div class="wtword">${q.uz}</div>
+      <div class="wtsub">${q.type==='choose'?'Koreyschasini tanlang':'Koreyschasini yozing'}</div>
+      ${q.type==='choose'
+        ? `<div class="opts" style="margin-top:14px">${q.options.map((o,oi)=>`<button class="opt" data-o="${oi}">${o}</button>`).join('')}</div>`
+        : `<input class="wtinput" id="wtin" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="한국어">
+           <div class="row" style="margin-top:12px"><button class="btn" id="wtok">Keyingisi</button></div>`}
+    </div>`;
+  if(q.type==='choose'){
+    app.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>wtAnswer(q.options[+b.dataset.o]));
+  } else {
+    const inp=document.getElementById('wtin');
+    inp.focus();
+    inp.addEventListener('keydown',e=>{ if(e.key==='Enter') wtAnswer(inp.value); });
+    document.getElementById('wtok').onclick=()=>wtAnswer(inp.value);
+  }
+  clearInterval(wtState.timerId);
+  wtState.timerId=setInterval(()=>wtTick(lim), 100);
+}
+function wtTick(lim){
+  const left=wtState.qEnd-Date.now();
+  const bar=document.getElementById('wtbar');
+  if(bar){
+    bar.firstElementChild.style.width=Math.max(0,left/(lim*1000)*100)+'%';
+    bar.classList.toggle('low', left<lim*1000*0.3);
+  }
+  if(left<=0) wtAnswer(null);
+}
+function wtAnswer(val){
+  clearInterval(wtState.timerId);
+  const q=wtState.items[wtState.i];
+  const lim=(q.type==='choose'?WT.chooseSec:WT.writeSec)*1000;
+  const ok = val!=null && norm(String(val))===norm(q.ko);
+  wtState.answers[wtState.i]={given:val==null?'':String(val).trim(), ok};
+  wtState.spent += lim - Math.max(0, wtState.qEnd-Date.now());
+  wtState.i++;
+  wtSave();
+  wtRenderQ();
+}
+async function wtFinish(){
+  if(wtState.finished) return;
+  wtState.finished=true;
+  clearInterval(wtState.timerId);
+  const correct=wtState.answers.filter(a=>a&&a.ok).length;
+  const seconds=Math.max(1,Math.round(wtState.spent/1000));
+  const n=wtAttempt();
+  wtClear();
+  window.scrollTo(0,0);
+  app.innerHTML='<div class="card"><h2>Hisoblanmoqda...</h2></div>';
+  const g=wtGame(); delete TOPS[g]; delete TOPERR[g];
+  try{
+    await fetch(API+'/score',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({game:g, name:mockAttemptName(n),
+        ok:Math.min(99999,correct), done:Math.min(99999,seconds)})});
+  }catch(e){}
+  wtResult(correct, seconds, n);
+}
+function wtResult(correct, seconds, n){
+  whoBar(2);
+  const items=wtState.items, ans=wtState.answers;
+  app.innerHTML=`
+    <div class="card">
+      <h2>${WT.title} — natija</h2>
+      <div class="score">${correct} / ${items.length}</div>
+      <p class="hint">Sarflangan vaqt: ${mockFmtTime(seconds)} · ${n}-urinish · reytingda <b>${mockAttemptName(n)}</b></p>
+    </div>
+    ${wtRankCard()}
+    <div class="card">
+      <h2>Javoblar</h2>
+      <div class="list" style="margin-top:8px">
+        ${items.map((q,i)=>{const a=ans[i]||{};return `<div>
+          <span class="k" style="color:${a.ok?'var(--ok)':'var(--no)'}">${q.ko}</span>
+          <span class="v">${q.uz}${a.ok?'':` · yozgan: <b>${a.given||'—'}</b>`}</span></div>`;}).join('')}
+      </div>
+    </div>
+    <div class="card"><div class="row"><button class="btn" id="wtback">Ortga</button></div></div>`;
+  document.getElementById('wtback').onclick=screenWordTest;
+  wireRank(wtGame(), ()=>wtResult(correct, seconds, n));
+}
+function wtRankCard(){
+  const g=wtGame(), total=WT.choose+WT.write;
+  const rows=TOPS[g], err=TOPERR[g];
+  let body;
+  if(rows===undefined && !err) body='<p class="hint">Yuklanmoqda...</p>';
+  else if(err) body='<p class="hint">Reytingni yuklab bo\'lmadi.</p>';
+  else{
+    const list=(rows||[]).filter(r=>typeof r.ok==='number'&&r.ok>=0&&r.ok<=total)
+                         .sort((a,b)=>b.ok-a.ok||a.done-b.done);
+    if(!list.length) body='<p class="hint">Hali hech kim topshirmagan.</p>';
+    else body=`<table class="rank">
+        <tr><th>#</th><th>Ism</th><th class="num">To'g'ri</th><th class="num">Vaqt</th></tr>
+        ${list.map((r,i)=>`<tr class="${isMyMockRow(r.name)?'me':''}">
+          <td>${i+1}</td><td>${r.name}</td><td class="num">${r.ok} / ${total}</td>
+          <td class="num">${mockFmtTime(r.done)}</td></tr>`).join('')}
+      </table>`;
+  }
+  return `<div class="card"><h2>${WT.title} — reyting</h2>
+    <p class="hint">Ko'proq topgan va tezroq ishlagan yuqorida turadi.</p>
+    ${body}<button class="btn ghost" id="reload">Yangilash</button></div>`;
+}
+
+/* ---- ustoz paneli: ?ustoz=1 ---- */
+function screenTeacher(){
+  whoEl.innerHTML='';
+  app.innerHTML=`<div class="card">
+      <h2>Ustoz paneli</h2>
+      <p class="hint">${WT.title} — kirishni boshqarish</p>
+      <input class="wtinput" id="tpass" type="password" placeholder="Parol">
+      <div class="row" style="margin-top:12px"><button class="btn" id="tgo">Kirish</button></div>
+    </div>`;
+  const go=()=>{
+    if(document.getElementById('tpass').value.trim()!==WT.pass){ alert('Parol xato'); return; }
+    screenTeacherPanel();
+  };
+  document.getElementById('tgo').onclick=go;
+  document.getElementById('tpass').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
+}
+function screenTeacherPanel(){
+  const holat = WTGATE===undefined ? 'tekshirilmoqda...' :
+                WTGATE===null ? "bog'lanib bo'lmadi" :
+                WTGATE.open ? `OCHIQ · yopilishiga ~${Math.max(0,Math.round((WTGATE.until-Date.now())/60000))} daqiqa`
+                            : 'YOPIQ';
+  app.innerHTML=`<div class="card">
+      <h2>Ustoz paneli</h2>
+      <p class="hint">${WT.title}</p>
+      <div class="wtlock" style="margin-top:12px;${WTGATE&&WTGATE.open?'background:#EAF7EE;border-color:var(--ok)':''}">
+        <b>Holat: ${holat}</b></div>
+      <p class="hint" style="margin-top:14px">Necha daqiqaga ochilsin?</p>
+      <div class="row wtrow" style="margin-top:8px">
+        <button class="btn" data-min="15">15 daqiqa</button>
+        <button class="btn" data-min="30">30 daqiqa</button>
+        <button class="btn" data-min="60">60 daqiqa</button>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn ghost" data-min="0">Hoziroq yopish</button>
+        <button class="btn ghost" id="tref">Yangilash</button>
+      </div>
+    </div>`;
+  app.querySelectorAll('[data-min]').forEach(b=>b.onclick=async()=>{
+    app.querySelectorAll('[data-min]').forEach(x=>x.disabled=true);
+    b.textContent='...';
+    await wtSetGate(+b.dataset.min);
+    screenTeacherPanel();
+  });
+  document.getElementById('tref').onclick=async()=>{ WTGATE=undefined; screenTeacherPanel(); await wtLoadGate(); screenTeacherPanel(); };
+  if(WTGATE===undefined) wtLoadGate().then(screenTeacherPanel);
+}
+
 /* ---- MOCK: ekranlar ----
    Tuzilma: 실전 모의고사 → 제N회 → 듣기 / 쓰기 / 읽기 */
 const MOCKTYPES = ['듣기','쓰기','읽기'];              // har raund ichidagi tartib
@@ -2058,7 +2361,8 @@ function renderMockReview(q, sharedAbove){
 
 /* ---- start ---- */
 load();
-if(DB.current && DB.users[DB.current]){
+if(/[?&]ustoz=1/.test(location.search)){ screenTeacher(); }
+else if(DB.current && DB.users[DB.current]){
   screenTypes();
   // tark etilgan imtihon bo'lsa: o'sha javoblar bo'yicha baholanib reytingga yuboriladi
   mockRecoverPending().then(()=>{ if(MOCKNOTE) screenTypes(); });
