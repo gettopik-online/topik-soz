@@ -558,13 +558,14 @@ function screenSets(){
             <div class="m" style="color:${st.done?'var(--ink)':'var(--muted)'}">${st.done? st.ok+'/'+st.all+" to'g'ri · "+st.no+' xato':'boshlanmagan'}</div>
           </button>`}).join('')}
       </div>
-      ${SEC===WT.secId?`<div class="sets" style="margin-top:12px">
+      ${(()=>{ const wt=wtBySecId(SEC); if(!wt) return '';
+        return `<div class="sets" style="margin-top:12px">
         <button class="set" id="towt">
-          <div class="n" style="font-size:20px">🔒 ${WT.title}</div>
-          <div class="m">${WT.choose+WT.write} ta savol tasodifiy tanlanadi</div>
+          <div class="n" style="font-size:20px">🔒 ${wt.title}</div>
+          <div class="m">${wt.choose+wt.write} ta savol tasodifiy tanlanadi</div>
           <div class="m" style="color:var(--muted)">Ustoz ruxsat berganda ochiladi</div>
         </button>
-      </div>`:''}
+      </div>`; })()}
     </div>
     <div class="card">
       <h2>${secLabel(SEC)} — statistika</h2>
@@ -581,7 +582,7 @@ function screenSets(){
   app.querySelectorAll('.set').forEach(b=>b.onclick=()=>{state.set=sets[+b.dataset.i];screenRounds();});
   const r=document.getElementById('res'); if(r) r.onclick=()=>{state.set=setByUid(last.uid);startRound(last.round);};
   const rv=document.getElementById('rev'); if(rv) rv.onclick=()=>startReview(secWrong(),null);
-  const tw2=document.getElementById('towt'); if(tw2) tw2.onclick=screenWordTest;
+  const tw2=document.getElementById('towt'); if(tw2) tw2.onclick=()=>{ const wt=wtBySecId(SEC); if(wt) screenWordTest(wt.id); };
   wireRank(gSec(SEC), screenSets);
   // mock so'zlaridan chiqilganda o'z mockiga qaytadi
   const cur=SECTIONS.find(x=>x.id===SEC);
@@ -2253,34 +2254,42 @@ function mockRankCard(mockId, title){
 }
 
 /* ============ 50 so'z testi ============
-   156 so'zdan 50 tasi tasodifiy. 1~30 variant tanlash (10 s),
-   31~50 yozish (15 s). Vaqt tugasa savol o'zi almashadi.
+   Har bir MOCK so'z bo'limi uchun (masalan 156 so'zli 제1회 듣기,
+   104 so'zli 제3회 읽기) 50 talik tasodifiy test. 1~30 variant tanlash,
+   31~50 yozish. Vaqt tugasa savol o'zi almashadi.
    Ustoz masofadan ochib/yopib turadi (Worker kodiga tegmasdan). */
-const WT = { id:'wt1', secId:'mocklisten1', title:"50 so'z testi",
-             choose:30, write:20, chooseSec:10, writeSec:15, pass:'ustoz2026' };
+const WORDTESTS = [
+  { id:'wt1', secId:'mocklisten1', title:"50 so'z testi",
+    choose:30, write:20, chooseSec:10, writeSec:15, pass:'ustoz2026' },
+  { id:'wt2', secId:'mockread3', title:"50 so'z testi",
+    choose:30, write:20, chooseSec:10, writeSec:30, pass:'ustoz2026' },
+];
+let WT = WORDTESTS[0];                              // joriy test
+function wtBySecId(secId){ return WORDTESTS.find(w=>w.secId===secId); }
+function wtSection(){ return SECTIONS.find(s=>s.id===WT.secId); }
 function wtGame(){ return GAME+'-wt-'+WT.id; }
 function wtGateGame(){ return GAME+'-gate-'+WT.id; }
 function wtRec(){ const u=U(); return (u&&u.wt&&u.wt[WT.id])||null; }
 
-/* ---- ustoz kaliti ---- */
-let WTGATE = undefined;   // {open, until} | null (bog'lanmadi)
+/* ---- ustoz kaliti (har test o'z holatini alohida saqlaydi) ---- */
+let WTGATES = {};   // {[testId]: {open, until} | null (bog'lanmadi) | undefined}
 async function wtLoadGate(){
   try{
     const r=await fetch(API+'/top?game='+wtGateGame()+'&cb='+Date.now());
     const d=await r.json();
     const row=(d.rows||[]).find(x=>x.name==='GATE');
-    if(!row || !row.ok){ WTGATE={open:false, until:0}; return WTGATE; }
+    if(!row || !row.ok){ WTGATES[WT.id]={open:false, until:0}; return WTGATES[WT.id]; }
     const until=row.t + row.ok*60000;          // ok = necha daqiqaga ochilgani
-    WTGATE={open:Date.now()<until, until};
-  }catch(e){ WTGATE=null; }
-  return WTGATE;
+    WTGATES[WT.id]={open:Date.now()<until, until};
+  }catch(e){ WTGATES[WT.id]=null; }
+  return WTGATES[WT.id];
 }
 async function wtSetGate(minutes){
   try{
     await fetch(API+'/score',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({game:wtGateGame(), name:'GATE', ok:Math.max(0,Math.round(minutes)), done:1})});
   }catch(e){}
-  WTGATE=undefined;
+  WTGATES[WT.id]=undefined;
   await wtLoadGate();
 }
 
@@ -2317,13 +2326,15 @@ function wtAttemptCount(){ const u=U(); return (u&&u.wtAttempts&&u.wtAttempts[WT
 
 /* ---- kirish ekrani ---- */
 let wtState=null;
-function screenWordTest(){
+function screenWordTest(testId){
+  if(testId) WT = WORDTESTS.find(w=>w.id===testId) || WT;
   whoBar(2);
+  const wsec=wtSection(), typeLabel=wsec&&wsec.type==='listen'?'듣기':'읽기';
   const done=wtAttemptCount(), pend=wtRec();
   app.innerHTML=`
     <div class="card">
       <h2>${WT.title}</h2>
-      <p class="hint">MOCK 제1회 듣기 so'zlaridan ${WT.choose+WT.write} tasi tasodifiy tanlanadi.</p>
+      <p class="hint">MOCK ${wsec?wsec.mockRound:''} ${typeLabel} so'zlaridan ${WT.choose+WT.write} tasi tasodifiy tanlanadi.</p>
       <p class="hint" style="margin-top:8px">1~${WT.choose}-savol: ma'nosi beriladi, koreyschasini <b>tanlaysiz</b> (${WT.chooseSec} soniya).<br>
         ${WT.choose+1}~${WT.choose+WT.write}-savol: koreyschasini <b>yozasiz</b> (${WT.writeSec} soniya).</p>
       <p class="hint" style="margin-top:8px">Vaqt tugasa savol o'zi almashadi, orqaga qaytib bo'lmaydi.</p>
@@ -2333,23 +2344,24 @@ function screenWordTest(){
     </div>
     ${wtRankCard()}`;
   document.getElementById('back').onclick=()=>screenSets();
-  wireRank(wtGame(), screenWordTest);
+  wireRank(wtGame(), ()=>screenWordTest(WT.id));
   wtRenderGate(!!pend);
-  if(WTGATE===undefined) wtLoadGate().then(()=>wtRenderGate(!!pend));
+  if(WTGATES[WT.id]===undefined) wtLoadGate().then(()=>wtRenderGate(!!pend));
 }
 function wtRenderGate(hasPending){
   const box=document.getElementById('wtgate'); if(!box) return;
-  if(WTGATE===undefined){ box.innerHTML='<p class="hint">Holat tekshirilmoqda...</p>'; return; }
-  if(WTGATE===null){
+  const gate=WTGATES[WT.id];
+  if(gate===undefined){ box.innerHTML='<p class="hint">Holat tekshirilmoqda...</p>'; return; }
+  if(gate===null){
     box.innerHTML=`<div class="wtlock"><b>Internet bilan bog'lanib bo'lmadi</b>
       <p class="hint" style="margin-top:6px">Test ustoz ruxsatini talab qiladi, shuning uchun internet kerak.</p></div>
       <div class="row" style="margin-top:10px"><button class="btn ghost" id="wtretry">Qayta tekshirish</button></div>`;
-  } else if(!WTGATE.open){
+  } else if(!gate.open){
     box.innerHTML=`<div class="wtlock"><b>🔒 Test hali ochilmagan</b>
       <p class="hint" style="margin-top:6px">Ustoz ruxsat berganda shu tugma jonlanadi. Shu sahifada kutib turing.</p></div>
       <div class="row" style="margin-top:10px"><button class="btn ghost" id="wtretry">Tekshirish</button></div>`;
   } else {
-    const qoldi=Math.max(0,Math.round((WTGATE.until-Date.now())/60000));
+    const qoldi=Math.max(0,Math.round((gate.until-Date.now())/60000));
     box.innerHTML=`<div class="wtlock" style="background:#EAF7EE;border-color:var(--ok)">
         <b style="color:var(--ok)">✓ Test ochiq</b>
         <p class="hint" style="margin-top:6px">Yopilishiga ~${qoldi} daqiqa qoldi.</p></div>
@@ -2358,12 +2370,12 @@ function wtRenderGate(hasPending){
       </div>`;
   }
   const rt=document.getElementById('wtretry');
-  if(rt) rt.onclick=async()=>{ WTGATE=undefined; wtRenderGate(hasPending); await wtLoadGate(); wtRenderGate(hasPending); };
+  if(rt) rt.onclick=async()=>{ WTGATES[WT.id]=undefined; wtRenderGate(hasPending); await wtLoadGate(); wtRenderGate(hasPending); };
   const st=document.getElementById('wtstart');
   if(st) st.onclick=()=>wtStart(hasPending);
   // ochilishini kutayotgan bo'lsa, har 15 soniyada o'zi tekshiradi
   clearTimeout(window.__wtPoll);
-  if(WTGATE && !WTGATE.open){
+  if(gate && !gate.open){
     window.__wtPoll=setTimeout(async()=>{ if(document.getElementById('wtgate')){ await wtLoadGate(); wtRenderGate(hasPending); } },15000);
   }
 }
@@ -2493,26 +2505,47 @@ function screenTeacher(){
   whoEl.innerHTML='';
   app.innerHTML=`<div class="card">
       <h2>Ustoz paneli</h2>
-      <p class="hint">${WT.title} — kirishni boshqarish</p>
+      <p class="hint">So'z testlarini boshqarish uchun kiring</p>
       <input class="wtinput" id="tpass" type="password" placeholder="Parol">
       <div class="row" style="margin-top:12px"><button class="btn" id="tgo">Kirish</button></div>
     </div>`;
   const go=()=>{
-    if(document.getElementById('tpass').value.trim()!==WT.pass){ alert('Parol xato'); return; }
-    screenTeacherPanel();
+    const p=document.getElementById('tpass').value.trim();
+    if(!WORDTESTS.some(w=>w.pass===p)){ alert('Parol xato'); return; }
+    screenTeacherList();
   };
   document.getElementById('tgo').onclick=go;
   document.getElementById('tpass').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
 }
+function screenTeacherList(){
+  whoEl.innerHTML='';
+  app.innerHTML=`<div class="card">
+      <h2>Ustoz paneli</h2>
+      <p class="hint">Boshqariladigan testni tanlang</p>
+      <div class="sets" style="margin-top:12px">
+        ${WORDTESTS.map(w=>{ const wsec=SECTIONS.find(s=>s.id===w.secId);
+          const typeLabel=wsec&&wsec.type==='listen'?'듣기':'읽기';
+          return `<button class="set" data-id="${w.id}">
+            <div class="n" style="font-size:20px">${w.title}</div>
+            <div class="m">MOCK ${wsec?wsec.mockRound:''} ${typeLabel}</div>
+          </button>`; }).join('')}
+      </div>
+    </div>`;
+  app.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{
+    WT=WORDTESTS.find(w=>w.id===b.dataset.id)||WT;
+    screenTeacherPanel();
+  });
+}
 function screenTeacherPanel(){
-  const holat = WTGATE===undefined ? 'tekshirilmoqda...' :
-                WTGATE===null ? "bog'lanib bo'lmadi" :
-                WTGATE.open ? `OCHIQ · yopilishiga ~${Math.max(0,Math.round((WTGATE.until-Date.now())/60000))} daqiqa`
+  const gate=WTGATES[WT.id];
+  const holat = gate===undefined ? 'tekshirilmoqda...' :
+                gate===null ? "bog'lanib bo'lmadi" :
+                gate.open ? `OCHIQ · yopilishiga ~${Math.max(0,Math.round((gate.until-Date.now())/60000))} daqiqa`
                             : 'YOPIQ';
   app.innerHTML=`<div class="card">
       <h2>Ustoz paneli</h2>
       <p class="hint">${WT.title}</p>
-      <div class="wtlock" style="margin-top:12px;${WTGATE&&WTGATE.open?'background:#EAF7EE;border-color:var(--ok)':''}">
+      <div class="wtlock" style="margin-top:12px;${gate&&gate.open?'background:#EAF7EE;border-color:var(--ok)':''}">
         <b>Holat: ${holat}</b></div>
       <p class="hint" style="margin-top:14px">Necha daqiqaga ochilsin?</p>
       <div class="row wtrow" style="margin-top:8px">
@@ -2524,6 +2557,9 @@ function screenTeacherPanel(){
         <button class="btn ghost" data-min="0">Hoziroq yopish</button>
         <button class="btn ghost" id="tref">Yangilash</button>
       </div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn ghost" id="tback">Testlar ro'yxatiga qaytish</button>
+      </div>
     </div>`;
   app.querySelectorAll('[data-min]').forEach(b=>b.onclick=async()=>{
     app.querySelectorAll('[data-min]').forEach(x=>x.disabled=true);
@@ -2531,8 +2567,9 @@ function screenTeacherPanel(){
     await wtSetGate(+b.dataset.min);
     screenTeacherPanel();
   });
-  document.getElementById('tref').onclick=async()=>{ WTGATE=undefined; screenTeacherPanel(); await wtLoadGate(); screenTeacherPanel(); };
-  if(WTGATE===undefined) wtLoadGate().then(screenTeacherPanel);
+  document.getElementById('tref').onclick=async()=>{ WTGATES[WT.id]=undefined; screenTeacherPanel(); await wtLoadGate(); screenTeacherPanel(); };
+  document.getElementById('tback').onclick=screenTeacherList;
+  if(WTGATES[WT.id]===undefined) wtLoadGate().then(screenTeacherPanel);
 }
 
 /* ---- MOCK: ekranlar ----
