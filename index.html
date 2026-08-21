@@ -3372,10 +3372,12 @@ function ssScreen54(){
 /* ---- Yakunlash: PDF yasash ---- */
 function ssPrintBlock(title, rows){
   return `<div class="blk"><b>${ssEsc(title)}</b>
-    ${rows.map((r,i)=>`<div class="qa">${i+1}. ${ssEsc(r.q)}<br><span class="g">javob: ${ssEsc(r.given||'—')}</span> &nbsp; <span class="c">to'g'ri: ${ssEsc(r.correct)}</span></div>`).join('')}
+    ${rows.map((r,i)=>`<div class="qa">${i+1}. ${ssEsc(r.q)}<br><span class="g">javob: ${ssEsc(r.given||'—')}</span></div>`).join('')}
   </div>`;
 }
 function ssBuildPrintRoot(){
+  // Faqat talaba o'zi yozgan javoblar saqlanadi — namunaviy/to'g'ri javoblar
+  // va boshqa izohlar PDF'ga qo'shilmaydi.
   const s=ssState();
   const root=document.getElementById('ssPrintRoot');
   root.innerHTML = `<div class="pp">
@@ -3386,12 +3388,12 @@ function ssBuildPrintRoot(){
     </div>
 
     <h2>51-savol</h2>
-    <div class="qa">ㄱ — <span class="g">javob: ${ssEsc(s.a51.g||'—')}</span><br><span class="c">to'g'ri: ${ssEsc(SS51.g.model)}</span></div>
-    <div class="qa">ㄴ — <span class="g">javob: ${ssEsc(s.a51.n||'—')}</span><br><span class="c">to'g'ri: ${ssEsc(SS51.n.model)}</span></div>
+    <div class="qa">ㄱ: ${ssEsc(s.a51.g||'—')}</div>
+    <div class="qa">ㄴ: ${ssEsc(s.a51.n||'—')}</div>
 
     <h2>52-savol</h2>
-    <div class="qa">ㄱ — <span class="g">javob: ${ssEsc(s.a52.g||'—')}</span><br><span class="c">to'g'ri: ${ssEsc(SS52.g.model)}</span></div>
-    <div class="qa">ㄴ — <span class="g">javob: ${ssEsc(s.a52.n||'—')}</span><br><span class="c">to'g'ri: ${ssEsc(SS52.n.model)}</span></div>
+    <div class="qa">ㄱ: ${ssEsc(s.a52.g||'—')}</div>
+    <div class="qa">ㄴ: ${ssEsc(s.a52.n||'—')}</div>
 
     <h2>53-savol</h2>
     ${ssManuscriptHTML(s.a53,300)}
@@ -3400,16 +3402,14 @@ function ssBuildPrintRoot(){
     ${ssPrintBlock("B. Moslashtiring", SS54.match.left.map((l,i)=>{
       const given=s.a54.match[i];
       const givenOpt=SS54.match.rightLabeled.find(o=>o[0]===given);
-      const correctLetter=SS54.match.answer[i];
-      const correctOpt=SS54.match.rightLabeled.find(o=>o[0]===correctLetter);
-      return {q:l, given: given&&givenOpt?`${given}) ${givenOpt[1]}`:'', correct:`${correctLetter}) ${correctOpt[1]}`};
+      return {q:l, given: given&&givenOpt?`${given}) ${givenOpt[1]}`:''};
     }))}
-    ${ssPrintBlock("C. Bo'shliqni to'ldiring", SS54.fill.map((it,i)=>({q:it.q, given:s.a54.fill[i], correct:it.a})))}
-    ${ssPrintBlock("D. Koreyschasini yozing", SS54.translate.map((it,i)=>({q:it.q, given:s.a54.translate[i], correct:it.a})))}
-    ${ssPrintBlock("E. Harflar aralashgan", SS54.scramble.map((it,i)=>({q:it.q, given:s.a54.scramble[i], correct:it.a})))}
-    ${ssPrintBlock("F. Gap tartibi", SS54.order.map((it,i)=>({q:it.q, given:s.a54.order[i], correct:it.a})))}
-    ${ssPrintBlock("Grammatika", SS54.grammar.map((it,i)=>({q:it.q, given:s.a54.grammar[i], correct:it.a})))}
-    ${ssPrintBlock("Gap tuzish", SS54.build.map((it,i)=>({q:it.q, given:s.a54.build[i], correct:it.a})))}
+    ${ssPrintBlock("C. Bo'shliqni to'ldiring", SS54.fill.map((it,i)=>({q:it.q, given:s.a54.fill[i]})))}
+    ${ssPrintBlock("D. Koreyschasini yozing", SS54.translate.map((it,i)=>({q:it.q, given:s.a54.translate[i]})))}
+    ${ssPrintBlock("E. Harflar aralashgan", SS54.scramble.map((it,i)=>({q:it.q, given:s.a54.scramble[i]})))}
+    ${ssPrintBlock("F. Gap tartibi", SS54.order.map((it,i)=>({q:it.q, given:s.a54.order[i]})))}
+    ${ssPrintBlock("Grammatika", SS54.grammar.map((it,i)=>({q:it.q, given:s.a54.grammar[i]})))}
+    ${ssPrintBlock("Gap tuzish", SS54.build.map((it,i)=>({q:it.q, given:s.a54.build[i]})))}
 
     <h2>54-savol — yakuniy insho</h2>
     ${ssManuscriptHTML(s.a54.essay,250)}
