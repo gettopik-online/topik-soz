@@ -539,8 +539,8 @@ function screenTypes(){
               <div class="m">${n} ta so'z · ${typeSections(x.id).length} ta bo'lim</div>
               <div class="m" style="color:${st.done?'var(--ink)':'var(--muted)'}">${st.done? st.ok+'/'+st.all+" to'g'ri":'boshlanmagan'}</div>
             </button>`;});
-          const ss=ssState();
-          const ssStatus = ss&&ss.submitted ? 'PDF yuborildi' : (ss&&(ss.a51done||ss.a52done||ss.a53done) ? 'davom etilmoqda' : 'boshlanmagan');
+          const ss=ssState(); const ssU=U();
+          const ssStatus = ss&&ss.submitted ? `PDF yuborildi (${(ssU&&ssU.sseogiAttempts)||1}-marta)` : (ss&&(ss.a51done||ss.a52done||ss.a53done) ? 'davom etilmoqda' : 'boshlanmagan');
           btns.splice(1,0,`<button class="set" data-ss="1">
             <div class="n" style="font-size:30px">쓰기</div>
             <div class="m" style="font-size:15px;color:var(--ink)">Yozish</div>
@@ -3453,7 +3453,9 @@ async function ssFinishAll(){
   try{
     const pdf=await ssGeneratePdf();
     ssDownloadBlob(pdf.output('blob'), ssPdfFilename());
-    s.submitted=true; s.submittedAt=Date.now(); save();
+    s.submitted=true; s.submittedAt=Date.now();
+    const u=U(); u.sseogiAttempts=(u.sseogiAttempts||0)+1;
+    save();
     ssScreenDone();
   }catch(e){
     app.innerHTML=`<div class="card ss-card"><h2>Xatolik yuz berdi</h2><p class="hint">${ssEsc(e.message||e)}</p>
@@ -3461,16 +3463,24 @@ async function ssFinishAll(){
     document.getElementById('ssretry').onclick=ssFinishAll;
   }
 }
+function ssRestart(){
+  const u=U(); u.sseogi=ssBlankState(); save();
+  ssScreen51();
+}
 function ssScreenDone(){
   whoBar(1);
+  const u=U(); const n=u.sseogiAttempts||1;
   app.innerHTML=`<div class="card ss-card">
     <h2>✅ Rahmat, ${ssEsc(DB.current)}!</h2>
     <p class="hint">Barcha javoblaringiz (51, 52, 53, 54) bitta PDF qilib kompyuteringizga yuklab olindi. Shu PDF faylni ustozingizga o'zingiz yuboring (Telegram va h.k.).</p>
+    <p class="hint" style="margin-top:6px">Bu mashqni ${n}-marta ishladingiz. Xohlagancha qayta ishlashingiz mumkin.</p>
     <div class="row">
+      <button class="btn" id="ssredo">Qaytadan ishlash</button>
       <button class="btn ghost" id="ssagain">PDFni qayta yuklab olish</button>
       <button class="btn ghost" id="sshome2">Bosh sahifaga</button>
     </div>
   </div>`;
+  document.getElementById('ssredo').onclick=ssRestart;
   document.getElementById('ssagain').onclick=async()=>{
     const pdf=await ssGeneratePdf();
     ssDownloadBlob(pdf.output('blob'), ssPdfFilename());
