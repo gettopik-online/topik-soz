@@ -3416,11 +3416,33 @@ function ssBuildPrintRoot(){
   </div>`;
 }
 async function ssGeneratePdf(){
+  // Koreyscha (한글) matn jsPDF'ning standart lotin shriftida chizilmaydi, shuning uchun
+  // butun sahifa html2canvas bilan rasmga olinadi. Bitta ulkan rasmni manfiy offset bilan
+  // "kesib" har sahifaga qo'yish ba'zi PDF o'quvchilarni (masalan poppler) buzilishga
+  // olib kelgani aniqlandi — shuning uchun har PDF sahifasi uchun ALOHIDA, aniq o'lchamli
+  // PNG rasm yasab, uni sahifaga (0,0) dan oddiy joylashtiramiz.
   await ssLoadLibs();
   ssBuildPrintRoot();
   const root=document.getElementById('ssPrintRoot');
+  const canvas=await html2canvas(root, {scale:2, useCORS:true, windowWidth:780});
   const pdf=new jspdf.jsPDF({unit:'pt',format:'a4'});
-  await pdf.html(root, { x:20, y:20, width:555, windowWidth:780, autoPaging:'slice', html2canvas:{scale:1.5, useCORS:true} });
+  const pageW=595.28, pageH=841.89;
+  const pagePx=Math.floor(canvas.width*(pageH/pageW));
+  let renderedPx=0, first=true;
+  while(renderedPx<canvas.height){
+    const sliceH=Math.min(pagePx, canvas.height-renderedPx);
+    const pageCanvas=document.createElement('canvas');
+    pageCanvas.width=canvas.width;
+    pageCanvas.height=sliceH;
+    const ctx=pageCanvas.getContext('2d');
+    ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,sliceH);
+    ctx.drawImage(canvas, 0,renderedPx,canvas.width,sliceH, 0,0,canvas.width,sliceH);
+    const drawH=sliceH*(pageW/canvas.width);
+    if(!first) pdf.addPage();
+    pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.88), 'JPEG', 0, 0, pageW, drawH);
+    renderedPx+=sliceH;
+    first=false;
+  }
   return pdf;
 }
 function ssPdfFilename(){ return `TOPIK_yozish_${DB.current}.pdf`.replace(/\s+/g,'_'); }
