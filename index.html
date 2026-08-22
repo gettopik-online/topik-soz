@@ -540,7 +540,7 @@ function screenTypes(){
               <div class="m" style="color:${st.done?'var(--ink)':'var(--muted)'}">${st.done? st.ok+'/'+st.all+" to'g'ri":'boshlanmagan'}</div>
             </button>`;});
           const ss=ssState(); const ssU=U();
-          const ssStatus = ss&&ss.submitted ? `PDF yuborildi (${(ssU&&ssU.sseogiAttempts)||1}-marta)` : (ss&&(ss.a51done||ss.a52done||ss.a53done) ? 'davom etilmoqda' : 'boshlanmagan');
+          const ssStatus = ss&&ss.submitted ? `${ss.uploaded?'Ustozga yuborildi':'PDF saqlandi'} (${(ssU&&ssU.sseogiAttempts)||1}-marta)` : (ss&&(ss.a51done||ss.a52done||ss.a53done) ? 'davom etilmoqda' : 'boshlanmagan');
           btns.splice(1,0,`<button class="set" data-ss="1">
             <div class="n" style="font-size:30px">쓰기</div>
             <div class="m" style="font-size:15px;color:var(--ink)">Yozish</div>
@@ -2588,7 +2588,8 @@ function screenTeacher(){
     </div>`;
   const go=()=>{
     const p=document.getElementById('tpass').value.trim();
-    if(!WORDTESTS.some(w=>w.pass===p)){ alert('Parol xato'); return; }
+    if(!WORDTESTS.some(w=>w.pass===p) && p!==SS_TEACHER_PASS){ alert('Parol xato'); return; }
+    TEACHER_PASS_CACHE=p;
     screenTeacherList();
   };
   document.getElementById('tgo').onclick=go;
@@ -2606,12 +2607,17 @@ function screenTeacherList(){
             <div class="n" style="font-size:20px">${w.title}</div>
             <div class="m">MOCK ${wsec?wsec.mockRound:''} ${typeLabel}</div>
           </button>`; }).join('')}
+        <button class="set" data-ss-teacher="1">
+          <div class="n" style="font-size:20px">쓰기 — talabalar PDF'lari</div>
+          <div class="m">51/52/53/54 mashqini tugatganlar ro'yxati</div>
+        </button>
       </div>
     </div>`;
   app.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{
     WT=WORDTESTS.find(w=>w.id===b.dataset.id)||WT;
     screenTeacherPanel();
   });
+  const ssT=document.querySelector('[data-ss-teacher]'); if(ssT) ssT.onclick=ssScreenTeacherList;
 }
 function screenTeacherPanel(){
   const gate=WTGATES[WT.id];
@@ -2996,7 +3002,14 @@ function renderMockReview(q, sharedAbove){
 
 /* ============ 쓰기 (51/52/53/54) ============
    듣기/읽기 tanlash ekranida "쓰기" tugmasi orqali kiriladi. Talaba javoblari
-   DB.users[ism].sseogi ichida saqlanadi (mavjud DB/save() infratuzilmasi orqali). */
+   DB.users[ism].sseogi ichida saqlanadi (mavjud DB/save() infratuzilmasi orqali).
+   Yakunda PDF talaba kompyuteriga yuklanadi VA (agar Worker deploy qilingan
+   bo'lsa) SS_API'ga yuborilib, ustoz paneli orqali ko'rish/yuklab olish mumkin
+   bo'ladi. Worker deploy qilinmagan bo'lsa ham talaba PDF'ni yo'qotmaydi —
+   yuborish jim tarzda muvaffaqiyatsiz bo'ladi va u faqat mahalliy yuklanadi. */
+const SS_API='https://REPLACE-ME.workers.dev';
+const SS_TEACHER_PASS='ustoz2026';
+let TEACHER_PASS_CACHE=null;
 const SS51 = {
   intro:"지훈 씨, 오늘 만나서 정말 반가웠습니다.\n오늘 함께 이야기한 시간이 아주 즐거워서 저는 꼭 지훈 씨를 다시 만나고 싶습니다.\n저는 다음 주 금요일과 토요일 오후에 시간이 있는데 지훈 씨는 ( ㄱ )?\n편한 날짜를 알려 주시면 좋겠습니다.\n지훈 씨가 커피를 좋아한다고 했으니까 제가 ( ㄴ ).\n그 카페에서 이야기를 나누면서 좋은 시간을 보냈으면 좋겠습니다.",
   g:{model:"언제 시간이 있습니까", alt:["어느 날이 괜찮습니까","언제가 좋습니까"], hint:"의문문 ('저는 ... 시간이 있는데'가 힌트)"},
@@ -3094,7 +3107,7 @@ function ssBlankState(){
           scramble:Array(4).fill(''), order:Array(3).fill(''), grammar:Array(4).fill(''), build:Array(5).fill(''),
           essay:'' },
     a54checked:{match:false,fill:false,translate:false,scramble:false,order:false,grammar:false,build:false},
-    submitted:false, submittedAt:null
+    submitted:false, submittedAt:null, uploaded:false
   };
 }
 function ssState(){
@@ -3446,14 +3459,34 @@ async function ssGeneratePdf(){
   return pdf;
 }
 function ssPdfFilename(){ return `TOPIK_yozish_${DB.current}.pdf`.replace(/\s+/g,'_'); }
+function ssBlobToBase64(blob){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>resolve(String(r.result).split(',')[1]);
+    r.onerror=reject;
+    r.readAsDataURL(blob);
+  });
+}
+async function ssUploadPdf(blob){
+  if(!SS_API || SS_API.includes('REPLACE-ME')) return false;
+  try{
+    const base64=await ssBlobToBase64(blob);
+    const r=await fetch(SS_API+'/submit',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:DB.current, pdfBase64:base64})});
+    const d=await r.json();
+    return !!(d&&d.ok);
+  }catch(e){ return false; }
+}
 async function ssFinishAll(){
   const s=ssState();
   whoBar(1);
   app.innerHTML = `<div class="card ss-card"><h2>PDF tayyorlanmoqda...</h2><p class="hint">Iltimos kuting, sahifani yopmang.</p></div>`;
   try{
     const pdf=await ssGeneratePdf();
-    ssDownloadBlob(pdf.output('blob'), ssPdfFilename());
-    s.submitted=true; s.submittedAt=Date.now();
+    const blob=pdf.output('blob');
+    ssDownloadBlob(blob, ssPdfFilename());
+    const uploaded=await ssUploadPdf(blob);
+    s.submitted=true; s.submittedAt=Date.now(); s.uploaded=uploaded;
     const u=U(); u.sseogiAttempts=(u.sseogiAttempts||0)+1;
     save();
     ssScreenDone();
@@ -3470,9 +3503,13 @@ function ssRestart(){
 function ssScreenDone(){
   whoBar(1);
   const u=U(); const n=u.sseogiAttempts||1;
+  const s=ssState();
+  const sentMsg = s.uploaded
+    ? "PDF kompyuteringizga yuklab olindi va ustozga avtomatik yuborildi."
+    : "PDF kompyuteringizga yuklab olindi. Ustozga avtomatik yuborib bo'lmadi (internet yo'q edi yoki xizmat ishlamayapti) — shu faylni o'zingiz yuboring (Telegram va h.k.).";
   app.innerHTML=`<div class="card ss-card">
     <h2>✅ Rahmat, ${ssEsc(DB.current)}!</h2>
-    <p class="hint">Barcha javoblaringiz (51, 52, 53, 54) bitta PDF qilib kompyuteringizga yuklab olindi. Shu PDF faylni ustozingizga o'zingiz yuboring (Telegram va h.k.).</p>
+    <p class="hint">Barcha javoblaringiz (51, 52, 53, 54) bitta PDF qilib saqlandi. ${sentMsg}</p>
     <p class="hint" style="margin-top:6px">Bu mashqni ${n}-marta ishladingiz. Xohlagancha qayta ishlashingiz mumkin.</p>
     <div class="row">
       <button class="btn" id="ssredo">Qaytadan ishlash</button>
@@ -3486,6 +3523,34 @@ function ssScreenDone(){
     ssDownloadBlob(pdf.output('blob'), ssPdfFilename());
   };
   document.getElementById('sshome2').onclick=screenTypes;
+}
+
+/* ---- ustoz: talabalar PDF ro'yxati ---- */
+function ssScreenTeacherList(){
+  whoEl.innerHTML='';
+  app.innerHTML=`<div class="card">
+    <h2>쓰기 — talabalar PDF'lari</h2>
+    <div id="ssTlist"><p class="hint">Yuklanmoqda...</p></div>
+    <div class="row"><button class="btn ghost" id="ssTback">Orqaga</button></div>
+  </div>`;
+  document.getElementById('ssTback').onclick=screenTeacherList;
+  const box=document.getElementById('ssTlist');
+  if(!SS_API || SS_API.includes('REPLACE-ME')){
+    box.innerHTML='<p class="hint">Backend hali ulanmagan.</p>';
+    return;
+  }
+  fetch(SS_API+'/list?pass='+encodeURIComponent(TEACHER_PASS_CACHE||''))
+    .then(r=>r.json())
+    .then(d=>{
+      if(!d.ok){ box.innerHTML='<p class="hint" style="color:var(--no)">Yuklab bo\'lmadi (parol yoki ulanish xatosi).</p>'; return; }
+      if(!d.rows.length){ box.innerHTML='<p class="hint">Hali hech kim yubormagan.</p>'; return; }
+      box.innerHTML=d.rows.map(row=>`<div style="border-top:1px solid var(--line);padding:12px 0">
+        <b>${ssEsc(row.name||"noma'lum")}</b> <span class="hint">${row.at?new Date(row.at).toLocaleString('uz-UZ'):''}</span><br>
+        <a class="btn ghost" style="display:inline-block;margin-top:8px;text-decoration:none" target="_blank"
+           href="${SS_API}/pdf?id=${encodeURIComponent(row.id)}&pass=${encodeURIComponent(TEACHER_PASS_CACHE||'')}">PDFni yuklab olish</a>
+      </div>`).join('');
+    })
+    .catch(()=>{ box.innerHTML="<p class=\"hint\" style=\"color:var(--no)\">Bog'lanib bo'lmadi.</p>"; });
 }
 
 /* ---- kirish nuqtasi ---- */
