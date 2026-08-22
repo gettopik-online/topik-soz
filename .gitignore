@@ -2,3 +2,7 @@
 manba/
 *.pdf
 *.zip
+
+# Cloudflare Worker local state
+worker/.wrangler/
+node_modules/
