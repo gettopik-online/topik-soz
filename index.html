@@ -182,13 +182,10 @@
   .ss-card textarea{width:100%;font:inherit;font-size:16px;padding:12px 14px;margin-top:0;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);resize:vertical;min-height:96px}
   .ss-card select{width:100%;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
   .ss-card input[type=text]:disabled,.ss-card select:disabled,.ss-card textarea:disabled{background:#F3F5F9;color:var(--muted)}
-  .ss-fb{background:#F0F8FF;border:1px solid #BEE0FF;border-radius:11px;padding:14px 16px;margin-top:10px;font-size:14.5px}
-  .ss-fb b.model{color:var(--ok);font-size:16px}
-  .ss-fb .alt{margin-top:6px;color:var(--ink)}
-  .ss-fb .hint2{margin-top:6px;color:var(--muted)}
   .ss-qa-item{border-top:1px solid var(--line);padding:14px 0}
   .ss-qa-item:first-child{border-top:0;padding-top:0}
   .ss-correct{color:var(--ok);font-weight:700;font-size:14px;margin-top:8px}
+  .ss-wrong{color:var(--no);font-weight:600;font-size:14px;margin-top:8px}
   .ss-vocab-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 20px;margin-bottom:2px}
   @media (max-width:480px){.ss-vocab-grid{grid-template-columns:1fr}}
   .ss-vocab-grid div{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:14.5px}
@@ -209,9 +206,11 @@
   .ss-counter.warn{color:var(--no)}
   .ss-manu{display:inline-block;border:1px solid var(--ink);margin-top:10px;max-width:100%;overflow-x:auto}
   .ss-manu-row{display:flex}
-  .ss-manu-cell{width:26px;height:30px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:14px;flex:none}
-  .ss-manu-num{width:34px;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);border-bottom:1px solid var(--line)}
-  @media (max-width:520px){ .ss-manu-cell{width:20px;height:24px;font-size:12px} .ss-manu-num{width:28px;font-size:10px} }
+  .ss-manu-cell{width:20px;height:24px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;flex:none;position:relative}
+  .ss-manu-cell.pack{font-size:9px}
+  .ss-manu-v{position:absolute;top:-7px;right:-1px;font-size:8px;color:var(--muted);line-height:1}
+  .ss-manu-num{width:30px;flex:none;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);border-bottom:1px solid var(--line)}
+  @media (max-width:520px){ .ss-manu-cell{width:14px;height:18px;font-size:9px} .ss-manu-cell.pack{font-size:7px} .ss-manu-num{width:22px;font-size:8px} }
   .ss-savedmsg{background:#EAF7EE;border:1px solid var(--ok);color:var(--ok);border-radius:11px;padding:14px 16px;font-weight:700;margin-top:14px}
 
   #ssPrintRoot{position:absolute;top:-10000px;left:0;width:780px;background:#fff;color:#111}
@@ -222,8 +221,10 @@
   #ssPrintRoot .qa .g{color:#555}
   #ssPrintRoot .qa .c{color:#127A4B;font-weight:700}
   #ssPrintRoot .blk b{display:block;font-size:12.5px;margin:10px 0 6px}
-  #ssPrintRoot .ss-manu-cell{width:22px;height:24px;font-size:12px}
-  #ssPrintRoot .ss-manu-num{width:30px;font-size:9px}
+  #ssPrintRoot .ss-manu-cell{width:16px;height:18px;font-size:9px}
+  #ssPrintRoot .ss-manu-cell.pack{font-size:6px}
+  #ssPrintRoot .ss-manu-num{width:24px;font-size:7px}
+  #ssPrintRoot .ss-manu-v{top:-5px;font-size:6px}
 </style>
 </head>
 <body>
@@ -3095,7 +3096,7 @@ const SS54 = {
     {q:"이러한 / 노력 / 계속되다 / 모두 / 함께 / 참여하다 / 사회 / 되다 (-(으)ㄴ다면, -(으)ㄹ 것이다)",
      a:"이러한 노력이 계속된다면 모두가 함께 참여하는 사회가 될 것이다."}
   ],
-  essayPrompt:"'디지털 소외 문제를 해결하기 위해 개인과 사회는 어떻게 해야 하는가?'에 대한 자신의 생각을 200~250자로 쓰시오. 위에서 배운 단어와 문법을 사용하십시오."
+  essayPrompt:"'디지털 소외 문제를 해결하기 위해 개인과 사회는 어떻게 해야 하는가?'에 대한 자신의 생각을 600~700자로 쓰시오. 위에서 배운 단어와 문법을 사용하십시오."
 };
 
 function ssBlankState(){
@@ -3116,22 +3117,96 @@ function ssState(){
   return u.sseogi;
 }
 function ssEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function ssNorm(s){ return String(s||'').replace(/\s+/g,'').trim(); }
 function ssMarkBlanks(text){
   return ssEsc(text).replace(/\(\s*ㄱ\s*\)/g,'<b>( ㄱ )</b>').replace(/\(\s*ㄴ\s*\)/g,'<b>( ㄴ )</b>');
 }
+/* ---- 원고지 (yozish varag'i) — GETTOPIK rasmiy 원고지 사용법 qoidalariga
+   moslab yasalgan: 1 hece=1 katak, abzats boshi bo'sh katak, so'z oralig'i
+   bo'sh katak, qator boshiga probel to'g'ri kelsa ∨ belgisi, tinish belgisi
+   qator boshiga tushib qolsa oldingi katakka qo'shib yoziladi, nuqta/vergul
+   keyin bo'sh joysiz, ?/! keyin 1 katak bo'sh, ... ikki katakka (3+3),
+   — ikki katak, raqamlar 2 tadan juftlab, katta lotin 1 tadan, kichik
+   lotin 2 tadan juftlab. ============ */
+const SS_MANU_COLS=25;
+function ssCellize(text){
+  const chars=[...String(text||'')];
+  const cells=[];
+  let i=0;
+  while(i<chars.length){
+    const c=chars[i];
+    if(c==='\n'){ cells.push({para:true}); i++; continue; }
+    if(c===' '){ cells.push({isSpace:true}); i++; continue; }
+    if(c==='.' && chars.slice(i,i+6).join('')==='......'){
+      cells.push({ch:'...'}); cells.push({ch:'...'}); i+=6; continue;
+    }
+    if(c==='—'){ cells.push({ch:'—'}); cells.push({ch:'—'}); i++; continue; }
+    if(/[0-9]/.test(c)){
+      let j=i; while(j<chars.length && /[0-9.]/.test(chars[j])) j++;
+      const run=chars.slice(i,j);
+      for(let k=0;k<run.length;k+=2) cells.push({ch:run.slice(k,k+2).join('')});
+      i=j; continue;
+    }
+    if(/[a-z]/.test(c)){
+      let j=i; while(j<chars.length && /[a-z]/.test(chars[j])) j++;
+      const run=chars.slice(i,j);
+      for(let k=0;k<run.length;k+=2) cells.push({ch:run.slice(k,k+2).join('')});
+      i=j; continue;
+    }
+    if(c==='.'||c===','){
+      cells.push({ch:c, punctTight:true}); i++;
+      if(chars[i]===' ') i++;
+      continue;
+    }
+    if(c==='?'||c==='!'){
+      cells.push({ch:c}); i++;
+      if(chars[i]===' ') i++;
+      cells.push({isSpace:true});
+      continue;
+    }
+    cells.push({ch:c}); i++;
+  }
+  return cells;
+}
+function ssLayoutRows(cells, cols, rowsMax){
+  const rows=[[]]; const vmark=[];
+  const curRow=()=>rows[rows.length-1];
+  function padAndNewRow(){ while(curRow().length<cols) curRow().push(null); rows.push([]); }
+  curRow().push(null); // 1-abzats boshi — 1-katak bo'sh
+  for(const cell of cells){
+    if(rows.length>rowsMax+1) break;
+    if(cell.para){ padAndNewRow(); curRow().push(null); continue; }
+    if(curRow().length>=cols) rows.push([]);
+    if(cell.isSpace){
+      if(curRow().length===0){ vmark[rows.length-2]=true; continue; }
+      curRow().push(null); continue;
+    }
+    if(cell.punctTight && curRow().length===0){
+      const prev=rows[rows.length-2];
+      if(prev && prev.length){ prev[prev.length-1]=(prev[prev.length-1]||'')+cell.ch; continue; }
+    }
+    curRow().push(cell.ch);
+  }
+  while(curRow().length<cols) curRow().push(null);
+  return {rows, vmark};
+}
 function ssManuscriptHTML(text, max){
-  const cols=10;
-  const rows=Math.ceil(max/cols);
-  const chars=[...String(text||'')].slice(0,max);
+  const cols=SS_MANU_COLS;
+  const rowsMax=Math.ceil(max/cols);
+  const truncated=[...String(text||'')].slice(0,max).join('');
+  const {rows, vmark}=ssLayoutRows(ssCellize(truncated), cols, rowsMax);
   let html='<div class="ss-manu">';
-  for(let r=0;r<rows;r++){
+  for(let r=0;r<rowsMax;r++){
+    const row=rows[r]||[];
     html+='<div class="ss-manu-row">';
     for(let c=0;c<cols;c++){
-      const ch=chars[r*cols+c];
-      html+=`<div class="ss-manu-cell">${ch&&ch!==' '?ssEsc(ch):''}</div>`;
+      const v=row[c];
+      const showV = c===cols-1 && vmark[r];
+      const cls = v && v.length>1 ? 'ss-manu-cell pack' : 'ss-manu-cell';
+      html+=`<div class="${cls}">${v?ssEsc(v):''}${showV?'<span class="ss-manu-v">∨</span>':''}</div>`;
     }
     const mark=(r+1)*cols;
-    const showLabel = mark%50===0 || r===rows-1;
+    const showLabel = mark%50===0 || r===rowsMax-1;
     html+=`<div class="ss-manu-num">${showLabel?Math.min(mark,max):''}</div>`;
     html+='</div>';
   }
@@ -3161,13 +3236,6 @@ function ssSteps(active){
 }
 
 /* ---- 51 / 52 ---- */
-function ssFbBox(item){
-  return `<div class="ss-fb">
-    <div><b class="model">5/5 ball oladigan javob:</b> ${ssEsc(item.model)}</div>
-    ${item.alt&&item.alt.length?`<div class="alt">Mazmuni to'g'ri kelsa, quyidagilar ham to'liq ball uchun qabul qilinadi: ${item.alt.map(ssEsc).join(' / ')}</div>`:''}
-    <div class="hint2">💡 ${ssEsc(item.hint)}</div>
-  </div>`;
-}
 function ssScreenBlank(qKey, data, nextFn){
   whoBar(1);
   const s=ssState(); const ans=s['a'+qKey]; const done=s[qKey+'done'];
@@ -3179,10 +3247,9 @@ function ssScreenBlank(qKey, data, nextFn){
       <div class="ss-passage">${ssMarkBlanks(data.intro)}</div>
       <label class="ss-f">ㄱ javobingiz:</label>
       <input type="text" id="ssfg" value="${ssEsc(ans.g)}" placeholder="한국어로 한 문장" ${done?'disabled':''}>
-      ${done?ssFbBox(data.g):''}
       <label class="ss-f">ㄴ javobingiz:</label>
       <input type="text" id="ssfn" value="${ssEsc(ans.n)}" placeholder="한국어로 한 문장" ${done?'disabled':''}>
-      ${done?ssFbBox(data.n):''}
+      ${done?`<div class="ss-savedmsg">✅ Javobingiz qabul qilindi.</div>`:''}
       <div class="row">
         ${qKey==='51'?`<button class="btn ghost" id="sshome">Orqaga</button>`:''}
         ${done?`<button class="btn" id="ssnext">Keyingisiga o'tish</button>`
@@ -3234,7 +3301,7 @@ function ssScreen53(){
       ${ssChart53HTML()}
       <label class="ss-f">Javobingiz:</label>
       <textarea id="ssta53" placeholder="여기에 작문하세요...">${ssEsc(s.a53)}</textarea>
-      <div class="ss-counter" id="sscnt53">0 / 300자 (띄어쓰기 포함)</div>
+      <div class="ss-counter" id="sscnt53">0 / 300자 (200~300 oralig'ida, 띄어쓰기 포함)</div>
       <div id="ssmanu53"></div>
       ${s.a53done
         ?`<div class="ss-savedmsg">✅ Javobingiz saqlandi.</div><div class="row"><button class="btn" id="ssnext">Keyingisiga o'tish (54-savol)</button></div>`
@@ -3243,7 +3310,7 @@ function ssScreen53(){
   const ta=document.getElementById('ssta53');
   const renderManu=()=>{
     const n=[...ta.value].length;
-    document.getElementById('sscnt53').textContent=`${n} / 300자 (띄어쓰기 포함)`;
+    document.getElementById('sscnt53').textContent=`${n} / 300자 (200~300 oralig'ida, 띄어쓰기 포함)`;
     document.getElementById('sscnt53').classList.toggle('warn', n>300);
     document.getElementById('ssmanu53').innerHTML=ssManuscriptHTML(ta.value,300);
   };
@@ -3262,10 +3329,14 @@ function ssBlockFill(key, items){
   const s=ssState(); const checked=s.a54checked[key];
   let html='';
   items.forEach((it,i)=>{
+    const given=s.a54[key][i];
+    const ok=checked && ssNorm(given)===ssNorm(it.a);
     html+=`<div class="ss-qa-item">
       <label class="ss-f" style="margin-top:0">${i+1}. ${ssEsc(it.q)}</label>
-      <input type="text" data-k="${key}" data-i="${i}" value="${ssEsc(s.a54[key][i])}" ${checked?'disabled':''}>
-      ${checked?`<div class="ss-correct">To'g'ri javob: ${ssEsc(it.a)}</div>`:''}
+      <input type="text" data-k="${key}" data-i="${i}" value="${ssEsc(given)}" class="${checked?(ok?'ok':'no'):''}" ${checked?'disabled':''}>
+      ${checked?(ok
+        ?`<div class="ss-correct">To'g'ri!</div>`
+        :`<div class="ss-wrong">Sizning javobingiz: <b>${ssEsc(given||'—')}</b> — noto'g'ri. To'g'ri javob: ${ssEsc(it.a)}</div>`):''}
     </div>`;
   });
   html += checked ? '' : `<div class="row"><button class="btn ghost" data-check="${key}">Javoblarni ko'rsatish</button></div>`;
@@ -3287,13 +3358,16 @@ function ssBlockMatch(){
     const sel=s.a54.match[i];
     const correctLetter=SS54.match.answer[i];
     const correctText=opts.find(o=>o[0]===correctLetter)[1];
+    const ok=checked && sel===correctLetter;
     html+=`<div class="ss-qa-item" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <div style="min-width:140px"><b>${i+1}. ${ssEsc(left)}</b></div>
-      <select data-mi="${i}" ${checked?'disabled':''} style="flex:1;min-width:200px">
+      <select data-mi="${i}" ${checked?'disabled':''} class="${checked?(ok?'ok':'no'):''}" style="flex:1;min-width:200px">
         <option value="">— tanlang —</option>
         ${opts.map(o=>`<option value="${o[0]}" ${sel===o[0]?'selected':''}>${o[0]}) ${ssEsc(o[1])}</option>`).join('')}
       </select>
-      ${checked?`<div class="ss-correct" style="margin-top:0">To'g'ri: ${correctLetter}) ${ssEsc(correctText)}</div>`:''}
+      ${checked?(ok
+        ?`<div class="ss-correct" style="margin-top:0">To'g'ri!</div>`
+        :`<div class="ss-wrong" style="margin-top:0">Noto'g'ri. To'g'ri: ${correctLetter}) ${ssEsc(correctText)}</div>`):''}
     </div>`;
   });
   html+='</div>';
@@ -3312,12 +3386,16 @@ function ssBlockGrammar(){
   const s=ssState(); const checked=s.a54checked.grammar;
   let html='';
   SS54.grammar.forEach((g,i)=>{
+    const given=s.a54.grammar[i];
+    const ok=checked && ssNorm(given)===ssNorm(g.a);
     html+=`<div class="ss-qa-item">
       <div class="hint"><b style="color:var(--ink)">${ssEsc(g.pattern)}</b> — ${ssEsc(g.note)}<br>예문: ${ssEsc(g.example)}</div>
       <label class="ss-f">${i+1}. ${ssEsc(g.q)}</label>
       <div class="hint" style="margin-bottom:6px">Kalit: ${ssEsc(g.key)}</div>
-      <input type="text" data-gi="${i}" value="${ssEsc(s.a54.grammar[i])}" ${checked?'disabled':''}>
-      ${checked?`<div class="ss-correct">To'g'ri javob: ${ssEsc(g.a)}</div>`:''}
+      <input type="text" data-gi="${i}" value="${ssEsc(given)}" class="${checked?(ok?'ok':'no'):''}" ${checked?'disabled':''}>
+      ${checked?(ok
+        ?`<div class="ss-correct">To'g'ri!</div>`
+        :`<div class="ss-wrong">Sizning javobingiz: <b>${ssEsc(given||'—')}</b> — noto'g'ri. To'g'ri javob: ${ssEsc(g.a)}</div>`):''}
     </div>`;
   });
   html += checked ? '' : `<div class="row"><button class="btn ghost" data-check="grammar">Javoblarni ko'rsatish</button></div>`;
@@ -3359,7 +3437,7 @@ function ssScreen54(){
       <h3>Yozish (쓰기) — yakuniy insho</h3>
       <p class="hint" style="margin-bottom:10px">${ssEsc(SS54.essayPrompt)}</p>
       <textarea id="ssta54" placeholder="여기에 작문하세요...">${ssEsc(s.a54.essay)}</textarea>
-      <div class="ss-counter" id="sscnt54">0 / 250자 (띄어쓰기 포함)</div>
+      <div class="ss-counter" id="sscnt54">0 / 700자 (600~700 oralig'ida, 띄어쓰기 포함)</div>
       <div id="ssmanu54"></div>
       <p class="hint" style="margin-top:10px">Bu insho tekshirilmaydi va izohlanmaydi — faqat saqlanib, PDF'ga qo'shiladi.</p>
       <div class="row"><button class="btn ok" id="ssfinish">Yakunlash va PDF yaratish</button></div>
@@ -3372,9 +3450,9 @@ function ssScreen54(){
   const ta=document.getElementById('ssta54');
   const renderManu=()=>{
     const n=[...ta.value].length;
-    document.getElementById('sscnt54').textContent=`${n} / 250자 (띄어쓰기 포함)`;
-    document.getElementById('sscnt54').classList.toggle('warn', n>250);
-    document.getElementById('ssmanu54').innerHTML=ssManuscriptHTML(ta.value,250);
+    document.getElementById('sscnt54').textContent=`${n} / 700자 (600~700 oralig'ida, 띄어쓰기 포함)`;
+    document.getElementById('sscnt54').classList.toggle('warn', n>700);
+    document.getElementById('ssmanu54').innerHTML=ssManuscriptHTML(ta.value,700);
   };
   ta.addEventListener('input',()=>{ s.a54.essay=ta.value; save(); renderManu(); });
   renderManu();
@@ -3425,7 +3503,7 @@ function ssBuildPrintRoot(){
     ${ssPrintBlock("Gap tuzish", SS54.build.map((it,i)=>({q:it.q, given:s.a54.build[i]})))}
 
     <h2>54-savol — yakuniy insho</h2>
-    ${ssManuscriptHTML(s.a54.essay,250)}
+    ${ssManuscriptHTML(s.a54.essay,700)}
   </div>`;
 }
 async function ssGeneratePdf(){
