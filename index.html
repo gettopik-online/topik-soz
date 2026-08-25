@@ -191,15 +191,36 @@
   .ss-vocab-grid div{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:14.5px}
   .ss-vocab-grid b{font-weight:700}
   .ss-vocab-grid span{color:var(--muted)}
-  .ss-chart-wrap{display:flex;gap:28px;flex-wrap:wrap;margin-bottom:14px;align-items:flex-start}
-  .ss-pie{width:150px;height:150px;border-radius:50%;flex:none}
-  .ss-pie-legend div{display:flex;align-items:center;gap:8px;font-size:14px;margin:4px 0}
-  .ss-pie-legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
-  .ss-bars{display:flex;align-items:flex-end;gap:26px;height:150px}
-  .ss-bar-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
-  .ss-bar-col .bv{background:var(--accent);width:52px;border-radius:6px 6px 0 0}
-  .ss-bar-col .bl{font-size:13px;color:var(--muted);margin-top:6px}
-  .ss-bar-col .bn{font-size:13px;font-weight:700;margin-bottom:4px}
+  .ss-chatui{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff;margin-bottom:6px;max-width:480px}
+  .ss-chat-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line);color:var(--muted);font-size:16px}
+  .ss-chat-avatar{width:30px;height:30px;border-radius:50%;background:var(--line);display:inline-block}
+  .ss-chat-body{padding:16px 14px;display:flex;flex-direction:column;gap:12px}
+  .ss-chat-row{display:flex;align-items:flex-start;gap:8px}
+  .ss-chat-avatar-sm{width:20px;height:20px;border-radius:50%;background:var(--line);flex:none;margin-top:2px;display:inline-block}
+  .ss-bubble{padding:10px 14px;border-radius:14px;font-size:14px;line-height:1.7;max-width:82%;white-space:pre-line}
+  .ss-bubble-blue{background:var(--accent);color:#fff;border-top-left-radius:4px}
+  .ss-bubble-blue b{color:#fff;text-decoration:underline}
+  .ss-bubble-gray{background:#F1F2F5;color:var(--ink);align-self:flex-end;border-top-right-radius:4px}
+
+  .ss-53grid{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:auto;gap:12px;margin-bottom:6px}
+  .ss-53box{border:1px solid var(--line);border-radius:11px;padding:14px;background:#fff}
+  .ss-53box-hh{grid-row:1 / 3;display:flex;flex-direction:column}
+  .ss-53pill{background:var(--ink);color:#fff;border-radius:999px;padding:6px 14px;font-size:13px;font-weight:700;display:inline-block;margin-bottom:14px;align-self:flex-start}
+  .ss-53hh-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:auto;margin-bottom:auto}
+  .ss-53hh-col{text-align:center}
+  .ss-53hh-val{font-size:20px;font-weight:800}
+  .ss-53hh-icons{display:flex;flex-wrap:wrap;justify-content:center;gap:2px;max-width:64px;color:var(--muted);margin:6px auto}
+  .ss-53hh-year{font-size:12px;color:var(--muted)}
+  .ss-53hh-arrow{font-size:20px;color:var(--ink);font-weight:700}
+  .ss-53box-title{font-size:13px;font-weight:700;margin-bottom:6px}
+  .ss-53unit{font-weight:400;color:var(--muted);font-size:11px}
+  .ss-53bars{display:flex;align-items:flex-end;justify-content:center;gap:24px;height:100px;margin-top:10px}
+  .ss-53bar-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+  .ss-53bar-val{font-size:13px;font-weight:700}
+  .ss-53bar-vis{width:44px;border-radius:4px 4px 0 0;margin-top:4px}
+  .ss-53bar-label{font-size:11px;color:var(--muted);margin-top:6px;text-align:center}
+  .ss-53bar-note{font-size:9px;color:var(--muted)}
+  @media (max-width:480px){ .ss-53grid{grid-template-columns:1fr} .ss-53box-hh{grid-row:auto} }
   .ss-cause{background:#F7F9FC;border:1px solid var(--line);border-radius:11px;padding:12px 16px;font-size:14.5px;margin-bottom:6px}
   .ss-cause b{display:block;margin-bottom:4px}
   .ss-counter{font-size:13px;color:var(--muted);margin-top:8px;text-align:right}
@@ -3012,21 +3033,21 @@ const SS_API='https://topik-yozish-api.online-koreys-tili.workers.dev';
 const SS_TEACHER_PASS='ustoz2026';
 let TEACHER_PASS_CACHE=null;
 const SS51 = {
-  intro:"지훈 씨, 오늘 만나서 정말 반가웠습니다.\n오늘 함께 이야기한 시간이 아주 즐거워서 저는 꼭 지훈 씨를 다시 만나고 싶습니다.\n저는 다음 주 금요일과 토요일 오후에 시간이 있는데 지훈 씨는 ( ㄱ )?\n편한 날짜를 알려 주시면 좋겠습니다.\n지훈 씨가 커피를 좋아한다고 했으니까 제가 ( ㄴ ).\n그 카페에서 이야기를 나누면서 좋은 시간을 보냈으면 좋겠습니다.",
-  g:{model:"언제 시간이 있습니까", alt:["어느 날이 괜찮습니까","언제가 좋습니까"], hint:"의문문 ('저는 ... 시간이 있는데'가 힌트)"},
-  n:{model:"좋은 카페를 예약하겠습니다", alt:["카페를 알아보겠습니다","예약하려고 합니다"], hint:"-겠습니다 ('그 카페에서'가 힌트)"}
+  isChat:true,
+  messages:[
+    {from:'them', text:"지훈 부장님, 안녕하세요? 총무팀 박서준입니다. 지난주에 주문하신 사무용품이 내일 도착한다는 연락을 받았습니다."},
+    {from:'me', text:"안녕하세요. 제가 지금 해외 출장 중이라 직접 받을 수가 없습니다.\n배송비는 회사 카드로 ( ㄱ ).\n그리고 물건이 도착하면 바로 저에게 ( ㄴ )?\n확인 후 담당자에게 전달해야 해서요.\n감사합니다. 다음 주에 뵙겠습니다."}
+  ]
 };
 const SS52 = {
-  intro:"음식을 냉장고에 넣어도 금방 시원해지지 않을 때가 있다. 이런 경우에는 ( ㄱ ). 냉장고 안에 빈 공간이 있으면 찬 공기가 잘 돌아서 음식이 빨리 시원해지기 때문이다. 그러므로 만약에 냉장고가 가득 차 있다면 음식을 ( ㄴ ).",
-  g:{model:"냉장고 안을 조금 비워야 한다", alt:["음식을 조금만 넣는 것이 좋다"], hint:"-아/어야 하다 ('빈 공간이 있으면'이 힌트)"},
-  n:{model:"조금 꺼내는 것이 좋다", alt:["빼내야 한다","덜어 내야 한다"], hint:"-는 것이 좋다 ('가득 차 있다면'이 힌트)"}
+  intro:"보통 운동은 저녁에 하는 것이라고 생각한다. 그러나 요즘은 ( ㄱ ) 사람도 많다. 상쾌한 공기를 마시며 몸을 움직이면 하루를 활기차게 ( ㄴ ) 때문이다. 이렇게 아침에 몸을 움직이면 잠이 완전히 깨고 집중력도 높아진다. 또한 하루의 일정을 미리 점검하며 운동을 할 수도 있다. 아침에 세우는 운동 계획은 지금 나에게 필요한 것이 무엇인지 알게 해 준다. 이처럼 하루를 시작하기 전에 몸을 움직여 보는 것은 하루를 건강하게 사는 데 큰 도움이 된다."
 };
 const SS53 = {
-  chart:{
-    pie:[["제주",35],["강원",28],["부산",20],["기타",17]],
-    bar:[["2022년",2800],["2024년",4500]],
-    cause:["해외여행 비용의 상승","국내 관광 상품의 다양화"]
-  }
+  source:"통계청",
+  household:{ from:{year:"1980년", value:"5명", icons:5}, to:{year:"2020년", value:"2명", icons:2} },
+  fertility:{ title:"합계출산율 감소", unit:"(단위: 명)", points:[["1980년",4.5],["2020년",0.8]] },
+  singleHousehold:{ title:"1인 가구 비율 증가", unit:"(단위: %)", bars:[["한국",33,"2022년 기준"],["OECD 평균",28,null]] },
+  outlook:["소형 가전제품 수요 증가","1인 가구 맞춤형 주택 공급 확대"]
 };
 const SS54 = {
   title:"디지털 소외",
@@ -3236,6 +3257,17 @@ function ssSteps(active){
 }
 
 /* ---- 51 / 52 ---- */
+function ssChat51HTML(data){
+  const bubbles=data.messages.map(m=>{
+    const content=ssMarkBlanks(m.text);
+    if(m.from==='me') return `<div class="ss-bubble ss-bubble-gray">${content}</div>`;
+    return `<div class="ss-chat-row"><span class="ss-chat-avatar-sm"></span><div class="ss-bubble ss-bubble-blue">${content}</div></div>`;
+  }).join('');
+  return `<div class="ss-chatui">
+    <div class="ss-chat-header"><span>‹</span><span class="ss-chat-avatar"></span><span>⋮</span></div>
+    <div class="ss-chat-body">${bubbles}</div>
+  </div>`;
+}
 function ssScreenBlank(qKey, data, nextFn){
   whoBar(1);
   const s=ssState(); const ans=s['a'+qKey]; const done=s[qKey+'done'];
@@ -3243,8 +3275,8 @@ function ssScreenBlank(qKey, data, nextFn){
     ${ssSteps(qKey)}
     <div class="card ss-card">
       <h2>${qKey}-savol</h2>
-      <p class="hint" style="margin-bottom:10px">다음을 읽고 ㄱ 과 ㄴ 에 들어갈 말을 각각 한 문장으로 쓰시오.</p>
-      <div class="ss-passage">${ssMarkBlanks(data.intro)}</div>
+      <p class="hint" style="margin-bottom:10px">다음 글의 ㄱ 과 ㄴ 에 알맞은 말을 각각 쓰시오.</p>
+      ${data.isChat ? ssChat51HTML(data) : `<div class="ss-passage">${ssMarkBlanks(data.intro)}</div>`}
       <label class="ss-f">ㄱ javobingiz:</label>
       <input type="text" id="ssfg" value="${ssEsc(ans.g)}" placeholder="한국어로 한 문장" ${done?'disabled':''}>
       <label class="ss-f">ㄴ javobingiz:</label>
@@ -3272,23 +3304,63 @@ function ssScreen51(){ ssScreenBlank('51', SS51, ()=>ssScreen52()); }
 function ssScreen52(){ ssScreenBlank('52', SS52, ()=>ssScreen53()); }
 
 /* ---- 53 ---- */
+const SS_PERSON_SVG='<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><circle cx="12" cy="7" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8z"/></svg>';
+function ssLineChartSVG(points, max){
+  const w=200, h=90, pad=26;
+  const stepX = points.length>1 ? (w-pad*2)/(points.length-1) : 0;
+  const scaleY = v => h-pad - (v/max)*(h-pad*2);
+  const coords = points.map((p,i)=>[pad+i*stepX, scaleY(p[1])]);
+  const path = coords.map((p,i)=>(i===0?'M':'L')+p[0]+','+p[1]).join(' ');
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;max-width:220px;height:auto;display:block;margin:0 auto">
+    <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2"/>
+    ${coords.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="var(--accent)"/>
+      <text x="${p[0]}" y="${p[1]-8}" font-size="11" text-anchor="middle" font-weight="700" fill="var(--ink)">${ssEsc(points[i][1]+'명')}</text>
+      <text x="${p[0]}" y="${h-6}" font-size="9" text-anchor="middle" fill="var(--muted)">${ssEsc(points[i][0])}</text>`).join('')}
+  </svg>`;
+}
+function ssBarChartHTML(bars, max){
+  const colors=['var(--accent)','#B9C2D0'];
+  return `<div class="ss-53bars">
+    ${bars.map((b,i)=>`<div class="ss-53bar-col">
+      <div class="ss-53bar-val">${ssEsc(b[1]+'%')}</div>
+      <div class="ss-53bar-vis" style="height:${b[1]/max*70}px;background:${colors[i]||colors[0]}"></div>
+      <div class="ss-53bar-label">${ssEsc(b[0])}${b[2]?`<br><span class="ss-53bar-note">(${ssEsc(b[2])})</span>`:''}</div>
+    </div>`).join('')}
+  </div>`;
+}
 function ssChart53HTML(){
-  const pie=SS53.chart.pie; const total=pie.reduce((a,x)=>a+x[1],0);
-  const colors=['#067DF4','#5B9EF9','#9CC2FB','#D8E6FE'];
-  let acc=0;
-  const stops=pie.map((p,i)=>{ const start=acc/total*360; acc+=p[1]; const end=acc/total*360; return `${colors[i]} ${start}deg ${end}deg`; }).join(', ');
-  const bar=SS53.chart.bar; const maxv=Math.max(...bar.map(b=>b[1]));
+  const c=SS53;
+  const maxFert=Math.max(...c.fertility.points.map(p=>p[1]));
+  const maxBar=Math.max(...c.singleHousehold.bars.map(b=>b[1]));
   return `
-  <div class="ss-chart-wrap">
-    <div>
-      <div class="ss-pie" style="background:conic-gradient(${stops})"></div>
-      <div class="ss-pie-legend">${pie.map((p,i)=>`<div><i style="background:${colors[i]}"></i>${ssEsc(p[0])} ${p[1]}%</div>`).join('')}</div>
+  <p class="hint" style="margin-bottom:10px">· 조사 기관: ${ssEsc(c.source)}</p>
+  <div class="ss-53grid">
+    <div class="ss-53box ss-53box-hh">
+      <div class="ss-53pill">가구당 평균 가구원 수</div>
+      <div class="ss-53hh-row">
+        <div class="ss-53hh-col">
+          <div class="ss-53hh-val">${ssEsc(c.household.from.value)}</div>
+          <div class="ss-53hh-icons">${SS_PERSON_SVG.repeat(c.household.from.icons)}</div>
+          <div class="ss-53hh-year">${ssEsc(c.household.from.year)}</div>
+        </div>
+        <div class="ss-53hh-arrow">→</div>
+        <div class="ss-53hh-col">
+          <div class="ss-53hh-val">${ssEsc(c.household.to.value)}</div>
+          <div class="ss-53hh-icons">${SS_PERSON_SVG.repeat(c.household.to.icons)}</div>
+          <div class="ss-53hh-year">${ssEsc(c.household.to.year)}</div>
+        </div>
+      </div>
     </div>
-    <div class="ss-bars">
-      ${bar.map(b=>`<div class="ss-bar-col"><div class="bn">${b[1].toLocaleString()}</div><div class="bv" style="height:${b[1]/maxv*120}px"></div><div class="bl">${ssEsc(b[0])}</div></div>`).join('')}
+    <div class="ss-53box">
+      <div class="ss-53box-title">${ssEsc(c.fertility.title)} <span class="ss-53unit">${ssEsc(c.fertility.unit)}</span></div>
+      ${ssLineChartSVG(c.fertility.points, maxFert)}
+    </div>
+    <div class="ss-53box">
+      <div class="ss-53box-title">${ssEsc(c.singleHousehold.title)} <span class="ss-53unit">${ssEsc(c.singleHousehold.unit)}</span></div>
+      ${ssBarChartHTML(c.singleHousehold.bars, maxBar)}
     </div>
   </div>
-  <div class="ss-cause"><b>원인</b>${SS53.chart.cause.map(c=>`· ${ssEsc(c)}`).join('<br>')}</div>`;
+  <div class="ss-cause"><b>전망</b>${c.outlook.map(o=>`· ${ssEsc(o)}`).join('<br>')}</div>`;
 }
 function ssScreen53(){
   whoBar(1);
@@ -3297,7 +3369,7 @@ function ssScreen53(){
     ${ssSteps('53')}
     <div class="card ss-card">
       <h2>53-savol</h2>
-      <p class="hint" style="margin-bottom:10px">'국내 여행 지역 및 국내 여행 총 지출액 변화'ga oid quyidagi ma'lumotlarga asoslanib, 200~300자lik matn yozing. Sarlavha yozmang.</p>
+      <p class="hint" style="margin-bottom:10px">'가구당 평균 가구원 수 변화'ga oid quyidagi ma'lumotlarga asoslanib, 200~300자lik matn yozing. Sarlavha yozmang.</p>
       ${ssChart53HTML()}
       <label class="ss-f">Javobingiz:</label>
       <textarea id="ssta53" placeholder="여기에 작문하세요...">${ssEsc(s.a53)}</textarea>
