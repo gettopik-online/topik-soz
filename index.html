@@ -221,8 +221,18 @@
   .ss-53bar-label{font-size:11px;color:var(--muted);margin-top:6px;text-align:center}
   .ss-53bar-note{font-size:9px;color:var(--muted)}
   @media (max-width:480px){ .ss-53grid{grid-template-columns:1fr} .ss-53box-hh{grid-row:auto} }
+  .ss-53grid-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px}
+  @media (max-width:480px){ .ss-53grid-2col{grid-template-columns:1fr} }
+  .ss-53dl-legend{font-size:11px;margin-bottom:4px;display:flex;gap:12px;flex-wrap:wrap;font-weight:600}
   .ss-cause{background:#F7F9FC;border:1px solid var(--line);border-radius:11px;padding:12px 16px;font-size:14.5px;margin-bottom:6px}
   .ss-cause b{display:block;margin-bottom:4px}
+  .ss-vocab-flash{background:#F7F9FC;border:1px solid var(--line);border-radius:14px;padding:36px 20px;text-align:center;margin:16px 0}
+  .ss-vocab-flash .ko{font-size:34px;font-weight:800;letter-spacing:-.02em}
+  .ss-vocab-flash .uz{font-size:18px;color:var(--muted);margin-top:10px}
+  .ss-puzzle-answer{background:#F7F9FC;border:1px solid var(--line);border-radius:11px;min-height:52px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;letter-spacing:.05em;margin:14px 0}
+  .ss-puzzle-tiles{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:10px}
+  .ss-puzzle-tile{width:48px;height:48px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:20px;font-weight:700;cursor:pointer;font-family:inherit}
+  .ss-puzzle-tile:disabled{opacity:.25;cursor:default}
   .ss-counter{font-size:13px;color:var(--muted);margin-top:8px;text-align:right}
   .ss-counter.warn{color:var(--no)}
   .ss-manu{display:inline-block;border:1px solid var(--ink);margin-top:10px;max-width:100%;overflow-x:auto}
@@ -561,13 +571,15 @@ function screenTypes(){
               <div class="m">${n} ta so'z · ${typeSections(x.id).length} ta bo'lim</div>
               <div class="m" style="color:${st.done?'var(--ink)':'var(--muted)'}">${st.done? st.ok+'/'+st.all+" to'g'ri":'boshlanmagan'}</div>
             </button>`;});
-          const ss=ssState(); const ssU=U();
-          const ssStatus = ss&&ss.submitted ? `${ss.uploaded?'Ustozga yuborildi':'PDF saqlandi'} (${(ssU&&ssU.sseogiAttempts)||1}-marta)` : (ss&&(ss.a51done||ss.a52done||ss.a53done) ? 'davom etilmoqda' : 'boshlanmagan');
+          const ssU=U(); const ssSetsU=(ssU&&ssU.sseogiSets)||{};
+          const ssAnyDone=SSSETS.some(x=>ssSetsU[x.id]&&ssSetsU[x.id].submitted);
+          const ssAnyStarted=SSSETS.some(x=>ssSetsU[x.id]&&(ssSetsU[x.id].a51done||ssSetsU[x.id].a52done||ssSetsU[x.id].a53done));
+          const ssStatus = ssAnyDone ? `${SSSETS.filter(x=>ssSetsU[x.id]&&ssSetsU[x.id].submitted).length}/${SSSETS.length} ta yakunlangan` : (ssAnyStarted ? 'davom etilmoqda' : 'boshlanmagan');
           btns.splice(1,0,`<button class="set" data-ss="1">
             <div class="n" style="font-size:30px">쓰기</div>
             <div class="m" style="font-size:15px;color:var(--ink)">Yozish</div>
-            <div class="m">51 · 52 · 53 · 54-savol mashqi</div>
-            <div class="m" style="color:${ss&&ss.submitted?'var(--ink)':'var(--muted)'}">${ssStatus}</div>
+            <div class="m">${SSSETS.length} ta to'plam · 51 · 52 · 53 · 54-savol mashqi</div>
+            <div class="m" style="color:${ssAnyDone?'var(--ink)':'var(--muted)'}">${ssStatus}</div>
           </button>`);
           return btns.join('');
         })()}
@@ -592,7 +604,7 @@ function screenTypes(){
     </div>
     ${rankCard(gTotal(),'Umumiy reyting',t.all)}`;
   app.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{ TYPE=b.dataset.t; screenSections(); });
-  const ssBtn=document.querySelector('[data-ss]'); if(ssBtn) ssBtn.onclick=ssScreenRouter;
+  const ssBtn=document.querySelector('[data-ss]'); if(ssBtn) ssBtn.onclick=ssScreenHub;
   app.querySelectorAll('[data-mr]').forEach(b=>b.onclick=()=>screenMockRound(b.dataset.mr));
   wireMockNote(screenTypes);
   wireRank(gTotal(), screenTypes);
@@ -3271,24 +3283,26 @@ function renderMockReview(q, sharedAbove){
 const SS_API='https://topik-yozish-api.online-koreys-tili.workers.dev';
 const SS_TEACHER_PASS='ustoz2026';
 let TEACHER_PASS_CACHE=null;
-const SS51 = {
+let SSID=null;
+const SS1_51 = {
   isChat:true,
   messages:[
     {from:'them', text:"지훈 부장님, 안녕하세요? 총무팀 박서준입니다. 지난주에 주문하신 사무용품이 내일 도착한다는 연락을 받았습니다."},
     {from:'me', text:"안녕하세요. 제가 지금 해외 출장 중이라 직접 받을 수가 없습니다.\n배송비는 회사 카드로 ( ㄱ ).\n그리고 물건이 도착하면 바로 저에게 ( ㄴ )?\n확인 후 담당자에게 전달해야 해서요.\n감사합니다. 다음 주에 뵙겠습니다."}
   ]
 };
-const SS52 = {
+const SS1_52 = {
   intro:"보통 운동은 저녁에 하는 것이라고 생각한다. 그러나 요즘은 ( ㄱ ) 사람도 많다. 상쾌한 공기를 마시며 몸을 움직이면 하루를 활기차게 ( ㄴ ) 때문이다. 이렇게 아침에 몸을 움직이면 잠이 완전히 깨고 집중력도 높아진다. 또한 하루의 일정을 미리 점검하며 운동을 할 수도 있다. 아침에 세우는 운동 계획은 지금 나에게 필요한 것이 무엇인지 알게 해 준다. 이처럼 하루를 시작하기 전에 몸을 움직여 보는 것은 하루를 건강하게 사는 데 큰 도움이 된다."
 };
-const SS53 = {
+const SS1_53 = {
+  layout:'household', topicTitle:"가구당 평균 가구원 수 변화", causeLabel:"전망",
   source:"통계청",
   household:{ from:{year:"1980년", value:"5명", icons:5}, to:{year:"2020년", value:"2명", icons:2} },
   fertility:{ title:"합계출산율 감소", unit:"(단위: 명)", points:[["1980년",4.5],["2020년",0.8]] },
   singleHousehold:{ title:"1인 가구 비율 증가", unit:"(단위: %)", bars:[["한국",33,"2022년 기준"],["OECD 평균",28,null]] },
   outlook:["소형 가전제품 수요 증가","1인 가구 맞춤형 주택 공급 확대"]
 };
-const SS54 = {
+const SS1_54 = {
   title:"디지털 소외",
   passage:"요새에는 식당에서부터 은행, 병원에 이르기까지 많은 곳에서 다양한 디지털 기기를 사용하고 있다. 하지만 디지털 기기를 활용하지 못해서 소외되는 사람들도 있다. 아래의 내용을 중심으로 '디지털 소외 문제와 해결 방안'에 대한 자신의 생각을 쓰라.",
   bullets:[
@@ -3358,23 +3372,75 @@ const SS54 = {
   ],
   essayPrompt:"'디지털 소외 문제를 해결하기 위해 개인과 사회는 어떻게 해야 하는가?'에 대한 자신의 생각을 600~700자로 쓰시오. 위에서 배운 단어와 문법을 사용하십시오."
 };
-
-function ssBlankState(){
+const SS2_51 = {
+  isChat:true,
+  messages:[
+    {from:'them', text:"민수 씨, 안녕하세요. 인주기업 인사팀 이지은입니다. 다음 주 화요일로 예정된 면접 일정에 변동 사항이 생겨 연락드립니다."},
+    {from:'me', text:"안녕하세요, 연락 주셔서 감사합니다.\n그런데 제가 그날 이미 다른 일정이 있어서 시간을 ( ㄱ ).\n혹시 목요일 오후로 ( ㄴ )?\n편하신 시간을 알려 주시면 맞추겠습니다.\n답변 기다리겠습니다."}
+  ]
+};
+const SS2_52 = {
+  intro:"카멜레온은 흔히 몸의 색깔을 주변 환경과 똑같이 바꾸어 위험을 피한다고 알려져 있다. 그러나 실제로는 온도나 감정에 따라 색이 ( ㄱ ) 경우가 더 많다. 몸이 차가워지면 햇빛을 잘 흡수하도록 색이 어두워지고, 다른 카멜레온을 만나 놀라거나 화가 나면 순식간에 ( ㄴ ). 즉 카멜레온의 색 변화는 위장보다는 몸 상태와 감정을 나타내는 신호에 더 가깝다."
+};
+const SS2_53 = {
+  layout:'petindustry', topicTitle:"반려동물 양육 가구 수 및 관련 산업 변화", causeLabel:"원인",
+  source:"한국반려동물산업협회",
+  bar:{ title:"반려동물 양육 가구 수", unit:"(단위: 만 가구)", points:[["2015년",100,"100만"],["2023년",300,"300만"]] },
+  dualLine:{ title:"동물병원 수 및 반려동물 보험 가입자 수", unit:"(단위: 개 / 만 명)",
+    seriesA:{ label:"동물병원 수(개)", color:"#9AA3AF", points:[["2015년",5000,"5천개"],["2023년",9000,"9천개"]] },
+    seriesB:{ label:"보험 가입자(만 명)", color:"var(--accent)", points:[["2015년",1,"1만명"],["2023년",15,"15만명"]] } },
+  outlook:["반려동물을 가족으로 여기는 인식 확산","1인 가구 증가로 정서적 교감 필요성 증가"]
+};
+const SS2_54 = {
+  title:"인공 지능 혁명이 사회에 미치는 영향",
+  passage:"오늘날 인공 지능은 생산성과 창의력을 높이는 도구로 다양한 분야에서 주목받고 있다. 그러나 이들의 사용이 늘면서 윤리적으로나 법적으로 다양한 문제도 발생하고 있다. 아래 내용을 중심으로 '인공 지능 혁명이 사회에 미치는 영향'에 대한 자신의 생각을 쓰라.",
+  bullets:[
+    "인공 지능이 필요한 이유는 무엇인가?",
+    "인공 지능의 오남용으로 발생하는 문제는 무엇인가?",
+    "이런 문제를 해결하기 위해 어떤 노력이 필요한가?"
+  ],
+  essayPrompt:"'인공 지능 혁명이 사회에 미치는 영향'에 대한 자신의 생각을 600~700자로 쓰시오."
+};
+const SS2_VOCAB = {
+  q51:[["인사팀","kadrlar bo'limi"],["면접","suhbat (intervyu)"],["예정되다","rejalashtirilmoq"],
+       ["변동 사항","o'zgarish holati"],["일정","jadval"],["답변","javob"],
+       ["편하다","qulay bo'lmoq"],["맞추다","moslashtirmoq"]],
+  q52:[["흔히","ko'pincha"],["위험","xavf"],["온도","harorat"],["감정","hissiyot"],
+       ["흡수하다","yutmoq (o'zlashtirmoq)"],["순식간에","bir zumda"],["위장","niqoblanish"],["신호","signal"]],
+  q53:[["반려동물","uy hayvoni"],["양육","boqish"],["가구","xonadon"],["산업","sanoat"],
+       ["조사 기관","tadqiqot muassasasi"],["동물병원","veterinariya klinikasi"],
+       ["보험 가입자","sug'urta a'zosi"],["인식 확산","tushunchaning kengayishi"],["정서적 교감","hissiy yaqinlik"]],
+  q54:[
+    ["생산성","mahsuldorlik"],["창의력","ijodkorlik"],["효율성","samaradorlik"],
+    ["자동화하다","avtomatlashtirmoq"],["분석하다","tahlil qilmoq"],["오남용","suiiste'mol qilish"],
+    ["가짜 정보","soxta ma'lumot"],["사생활 침해","shaxsiy hayotga aralashish"],["신뢰","ishonch"],
+    ["법적 기준","huquqiy me'yor"],["윤리적 책임","axloqiy mas'uliyat"],["확대하다","kengaytirmoq"]
+  ]
+};
+const SSSETS = [
+  { id:'ss1', title:"쓰기 1", q51:SS1_51, q52:SS1_52, q53:SS1_53, q54:SS1_54, vocab:null },
+  { id:'ss2', title:"쓰기 2", q51:SS2_51, q52:SS2_52, q53:SS2_53, q54:SS2_54, vocab:SS2_VOCAB }
+];
+function ssSet(){ return SSSETS.find(x=>x.id===SSID) || SSSETS[0]; }
+function ssBlankState(setDef){
+  const q54=setDef.q54||{};
+  const a54={ essay:'' }; const a54checked={};
+  ['match','fill','translate','scramble','order','grammar','build'].forEach(k=>{
+    if(q54[k]){ a54[k]=Array((k==='match'?q54.match.left:q54[k]).length).fill(''); a54checked[k]=false; }
+  });
   return {
     a51:{g:'',n:''}, a51done:false,
     a52:{g:'',n:''}, a52done:false,
     a53:'', a53done:false,
-    a54:{ match:Array(10).fill(''), fill:Array(6).fill(''), translate:Array(5).fill(''),
-          scramble:Array(4).fill(''), order:Array(3).fill(''), grammar:Array(4).fill(''), build:Array(5).fill(''),
-          essay:'' },
-    a54checked:{match:false,fill:false,translate:false,scramble:false,order:false,grammar:false,build:false},
+    a54, a54checked,
     submitted:false, submittedAt:null, uploaded:false
   };
 }
 function ssState(){
-  const u=U(); if(!u) return null;
-  if(!u.sseogi) u.sseogi=ssBlankState();
-  return u.sseogi;
+  const u=U(); if(!u||!SSID) return null;
+  if(!u.sseogiSets) u.sseogiSets={};
+  if(!u.sseogiSets[SSID]) u.sseogiSets[SSID]=ssBlankState(ssSet());
+  return u.sseogiSets[SSID];
 }
 function ssEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function ssNorm(s){ return String(s||'').replace(/\s+/g,'').trim(); }
@@ -3527,7 +3593,7 @@ function ssScreenBlank(qKey, data, nextFn){
               :`<button class="btn" id="sssubmit">Javobni yuborish</button>`}
       </div>
     </div>`;
-  const home=document.getElementById('sshome'); if(home) home.onclick=screenTypes;
+  const home=document.getElementById('sshome'); if(home) home.onclick=ssScreenSetIntro;
   if(!done){
     document.getElementById('sssubmit').onclick=()=>{
       ans.g=document.getElementById('ssfg').value.trim();
@@ -3539,8 +3605,8 @@ function ssScreenBlank(qKey, data, nextFn){
     document.getElementById('ssnext').onclick=nextFn;
   }
 }
-function ssScreen51(){ ssScreenBlank('51', SS51, ()=>ssScreen52()); }
-function ssScreen52(){ ssScreenBlank('52', SS52, ()=>ssScreen53()); }
+function ssScreen51(){ ssScreenBlank('51', ssSet().q51, ()=>ssScreen52()); }
+function ssScreen52(){ ssScreenBlank('52', ssSet().q52, ()=>ssScreen53()); }
 
 /* ---- 53 ---- */
 const SS_PERSON_SVG='<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><circle cx="12" cy="7" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8z"/></svg>';
@@ -3567,8 +3633,37 @@ function ssBarChartHTML(bars, max){
     </div>`).join('')}
   </div>`;
 }
-function ssChart53HTML(){
-  const c=SS53;
+function ssSimpleBarHTML(points, max){
+  const colors=['var(--accent)','#B9C2D0'];
+  return `<div class="ss-53bars">
+    ${points.map((p,i)=>`<div class="ss-53bar-col">
+      <div class="ss-53bar-val">${ssEsc(p[2]||String(p[1]))}</div>
+      <div class="ss-53bar-vis" style="height:${p[1]/max*70}px;background:${colors[i]||colors[0]}"></div>
+      <div class="ss-53bar-label">${ssEsc(p[0])}</div>
+    </div>`).join('')}
+  </div>`;
+}
+function ssDualLineChartSVG(seriesA, seriesB){
+  const w=200,h=100,pad=26;
+  function scaleSeries(series){
+    const vals=series.points.map(p=>p[1]);
+    const min=Math.min(...vals), max=Math.max(...vals);
+    const range=(max-min)||1;
+    const stepX=series.points.length>1?(w-pad*2)/(series.points.length-1):0;
+    return series.points.map((p,i)=>[pad+i*stepX, h-pad-((p[1]-min)/range)*(h-pad*2)]);
+  }
+  const coordsA=scaleSeries(seriesA), coordsB=scaleSeries(seriesB);
+  const pathOf=coords=>coords.map((p,i)=>(i===0?'M':'L')+p[0]+','+p[1]).join(' ');
+  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;max-width:220px;height:auto;display:block;margin:0 auto">
+    <path d="${pathOf(coordsA)}" fill="none" stroke="${seriesA.color}" stroke-width="2"/>
+    <path d="${pathOf(coordsB)}" fill="none" stroke="${seriesB.color}" stroke-width="2"/>
+    ${coordsA.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${seriesA.color}"/><text x="${p[0]}" y="${p[1]-7}" font-size="9" text-anchor="middle" fill="${seriesA.color}" font-weight="700">${ssEsc(seriesA.points[i][2]||seriesA.points[i][1])}</text>`).join('')}
+    ${coordsB.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="${seriesB.color}"/><text x="${p[0]}" y="${p[1]-7}" font-size="9" text-anchor="middle" fill="${seriesB.color}" font-weight="700">${ssEsc(seriesB.points[i][2]||seriesB.points[i][1])}</text>`).join('')}
+    <text x="${pad}" y="${h-6}" font-size="8" text-anchor="middle" fill="var(--muted)">${ssEsc(seriesA.points[0][0])}</text>
+    <text x="${w-pad}" y="${h-6}" font-size="8" text-anchor="middle" fill="var(--muted)">${ssEsc(seriesA.points[seriesA.points.length-1][0])}</text>
+  </svg>`;
+}
+function ssChart53HouseholdHTML(c){
   const maxFert=Math.max(...c.fertility.points.map(p=>p[1]));
   const maxBar=Math.max(...c.singleHousehold.bars.map(b=>b[1]));
   return `
@@ -3599,16 +3694,37 @@ function ssChart53HTML(){
       ${ssBarChartHTML(c.singleHousehold.bars, maxBar)}
     </div>
   </div>
-  <div class="ss-cause"><b>전망</b>${c.outlook.map(o=>`· ${ssEsc(o)}`).join('<br>')}</div>`;
+  <div class="ss-cause"><b>${ssEsc(c.causeLabel||'전망')}</b>${c.outlook.map(o=>`· ${ssEsc(o)}`).join('<br>')}</div>`;
+}
+function ssChart53PetHTML(c){
+  const maxBar=Math.max(...c.bar.points.map(p=>p[1]));
+  return `
+  <p class="hint" style="margin-bottom:10px">· 조사 기관: ${ssEsc(c.source)}</p>
+  <div class="ss-53grid-2col">
+    <div class="ss-53box">
+      <div class="ss-53box-title">${ssEsc(c.bar.title)} <span class="ss-53unit">${ssEsc(c.bar.unit)}</span></div>
+      ${ssSimpleBarHTML(c.bar.points, maxBar)}
+    </div>
+    <div class="ss-53box">
+      <div class="ss-53box-title">${ssEsc(c.dualLine.title)} <span class="ss-53unit">${ssEsc(c.dualLine.unit)}</span></div>
+      <div class="ss-53dl-legend"><span style="color:${c.dualLine.seriesA.color}">● ${ssEsc(c.dualLine.seriesA.label)}</span> <span style="color:${c.dualLine.seriesB.color}">● ${ssEsc(c.dualLine.seriesB.label)}</span></div>
+      ${ssDualLineChartSVG(c.dualLine.seriesA, c.dualLine.seriesB)}
+    </div>
+  </div>
+  <div class="ss-cause"><b>${ssEsc(c.causeLabel||'원인')}</b>${c.outlook.map(o=>`· ${ssEsc(o)}`).join('<br>')}</div>`;
+}
+function ssChart53HTML(){
+  const c=ssSet().q53;
+  return c.layout==='petindustry' ? ssChart53PetHTML(c) : ssChart53HouseholdHTML(c);
 }
 function ssScreen53(){
   whoBar(1);
-  const s=ssState();
+  const s=ssState(); const c=ssSet().q53;
   app.innerHTML = `
     ${ssSteps('53')}
     <div class="card ss-card">
       <h2>53-savol</h2>
-      <p class="hint" style="margin-bottom:10px">'가구당 평균 가구원 수 변화'ga oid quyidagi ma'lumotlarga asoslanib, 200~300자lik matn yozing. Sarlavha yozmang.</p>
+      <p class="hint" style="margin-bottom:10px">'${ssEsc(c.topicTitle)}'ga oid quyidagi ma'lumotlarga asoslanib, 200~300자lik matn yozing. Sarlavha yozmang.</p>
       ${ssChart53HTML()}
       <label class="ss-f">Javobingiz:</label>
       <textarea id="ssta53" placeholder="여기에 작문하세요...">${ssEsc(s.a53)}</textarea>
@@ -3663,11 +3779,12 @@ function ssWireBlockFill(key){
 }
 function ssBlockMatch(){
   const s=ssState(); const checked=s.a54checked.match;
-  const opts=SS54.match.rightLabeled;
+  const match=ssSet().q54.match;
+  const opts=match.rightLabeled;
   let html='<div style="display:grid;gap:12px">';
-  SS54.match.left.forEach((left,i)=>{
+  match.left.forEach((left,i)=>{
     const sel=s.a54.match[i];
-    const correctLetter=SS54.match.answer[i];
+    const correctLetter=match.answer[i];
     const correctText=opts.find(o=>o[0]===correctLetter)[1];
     const ok=checked && sel===correctLetter;
     html+=`<div class="ss-qa-item" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -3696,7 +3813,7 @@ function ssWireBlockMatch(){
 function ssBlockGrammar(){
   const s=ssState(); const checked=s.a54checked.grammar;
   let html='';
-  SS54.grammar.forEach((g,i)=>{
+  ssSet().q54.grammar.forEach((g,i)=>{
     const given=s.a54.grammar[i];
     const ok=checked && ssNorm(given)===ssNorm(g.a);
     html+=`<div class="ss-qa-item">
@@ -3722,41 +3839,46 @@ function ssWireBlockGrammar(){
 }
 function ssScreen54(){
   whoBar(1);
-  const s=ssState();
-  app.innerHTML = `
+  const s=ssState(); const q54=ssSet().q54;
+  let html = `
     ${ssSteps('54')}
     <div class="card ss-card">
-      <h2>54-savol — ${ssEsc(SS54.title)}</h2>
-      <div class="ss-passage">${ssEsc(SS54.passage)}</div>
-      <ul style="margin:0 0 4px 20px">${SS54.bullets.map((b,i)=>`<li style="margin-bottom:4px">${ssEsc(b)}${i===2?' <b style="color:var(--accent)">← bugungi savol</b>':''}</li>`).join('')}</ul>
-    </div>
-
-    <div class="card ss-card">
+      <h2>54-savol — ${ssEsc(q54.title)}</h2>
+      <div class="ss-passage">${ssEsc(q54.passage)}</div>
+      <ul style="margin:0 0 4px 20px">${q54.bullets.map((b,i)=>`<li style="margin-bottom:4px">${ssEsc(b)}${i===q54.bullets.length-1?' <b style="color:var(--accent)">← bugungi savol</b>':''}</li>`).join('')}</ul>
+    </div>`;
+  if(q54.vocab){
+    html += `<div class="card ss-card">
       <h3>So'zlar (어휘)</h3>
-      <div class="ss-vocab-grid">${SS54.vocab.map(v=>`<div><b>${ssEsc(v[0])}</b><span>${ssEsc(v[1])}</span></div>`).join('')}</div>
-    </div>
+      <div class="ss-vocab-grid">${q54.vocab.map(v=>`<div><b>${ssEsc(v[0])}</b><span>${ssEsc(v[1])}</span></div>`).join('')}</div>
+    </div>`;
+  }
+  if(q54.match) html += `<div class="card ss-card"><h3>B. Moslashtiring</h3>${ssBlockMatch()}</div>`;
+  if(q54.fill) html += `<div class="card ss-card"><h3>C. Bo'shliqni to'ldiring</h3>${ssBlockFill('fill',q54.fill)}</div>`;
+  if(q54.translate) html += `<div class="card ss-card"><h3>D. Koreyschasini yozing</h3>${ssBlockFill('translate',q54.translate)}</div>`;
+  if(q54.scramble) html += `<div class="card ss-card"><h3>E. Harflar aralashgan</h3>${ssBlockFill('scramble',q54.scramble)}</div>`;
+  if(q54.order) html += `<div class="card ss-card"><h3>F. To'g'ri tartibda gap yozing</h3>${ssBlockFill('order',q54.order)}</div>`;
+  if(q54.grammar) html += `<div class="card ss-card"><h3>Grammatika — tarjima qiling</h3>${ssBlockGrammar()}</div>`;
+  if(q54.build) html += `<div class="card ss-card"><h3>Gap tuzish</h3>${ssBlockFill('build',q54.build)}</div>`;
 
-    <div class="card ss-card"><h3>B. Moslashtiring</h3>${ssBlockMatch()}</div>
-    <div class="card ss-card"><h3>C. Bo'shliqni to'ldiring</h3>${ssBlockFill('fill',SS54.fill)}</div>
-    <div class="card ss-card"><h3>D. Koreyschasini yozing</h3>${ssBlockFill('translate',SS54.translate)}</div>
-    <div class="card ss-card"><h3>E. Harflar aralashgan</h3>${ssBlockFill('scramble',SS54.scramble)}</div>
-    <div class="card ss-card"><h3>F. To'g'ri tartibda gap yozing</h3>${ssBlockFill('order',SS54.order)}</div>
-    <div class="card ss-card"><h3>Grammatika — tarjima qiling</h3>${ssBlockGrammar()}</div>
-    <div class="card ss-card"><h3>Gap tuzish</h3>${ssBlockFill('build',SS54.build)}</div>
-
-    <div class="card ss-card">
+  html += `<div class="card ss-card">
       <h3>Yozish (쓰기) — yakuniy insho</h3>
-      <p class="hint" style="margin-bottom:10px">${ssEsc(SS54.essayPrompt)}</p>
+      <p class="hint" style="margin-bottom:10px">${ssEsc(q54.essayPrompt)}</p>
       <textarea id="ssta54" placeholder="여기에 작문하세요...">${ssEsc(s.a54.essay)}</textarea>
       <div class="ss-counter" id="sscnt54">0 / 700자 (600~700 oralig'ida, 띄어쓰기 포함)</div>
       <div id="ssmanu54"></div>
       <p class="hint" style="margin-top:10px">Bu insho tekshirilmaydi va izohlanmaydi — faqat saqlanib, PDF'ga qo'shiladi.</p>
       <div class="row"><button class="btn ok" id="ssfinish">Yakunlash va PDF yaratish</button></div>
     </div>`;
+  app.innerHTML = html;
 
-  ssWireBlockMatch();
-  ssWireBlockFill('fill'); ssWireBlockFill('translate'); ssWireBlockFill('scramble'); ssWireBlockFill('order'); ssWireBlockFill('build');
-  ssWireBlockGrammar();
+  if(q54.match) ssWireBlockMatch();
+  if(q54.fill) ssWireBlockFill('fill');
+  if(q54.translate) ssWireBlockFill('translate');
+  if(q54.scramble) ssWireBlockFill('scramble');
+  if(q54.order) ssWireBlockFill('order');
+  if(q54.grammar) ssWireBlockGrammar();
+  if(q54.build) ssWireBlockFill('build');
 
   const ta=document.getElementById('ssta54');
   const renderManu=()=>{
@@ -3780,12 +3902,24 @@ function ssPrintBlock(title, rows){
 function ssBuildPrintRoot(){
   // Faqat talaba o'zi yozgan javoblar saqlanadi — namunaviy/to'g'ri javoblar
   // va boshqa izohlar PDF'ga qo'shilmaydi.
-  const s=ssState();
+  const s=ssState(); const q54=ssSet().q54;
   const root=document.getElementById('ssPrintRoot');
+  let drillsHtml='';
+  if(q54.match) drillsHtml += ssPrintBlock("B. Moslashtiring", q54.match.left.map((l,i)=>{
+    const given=s.a54.match[i];
+    const givenOpt=q54.match.rightLabeled.find(o=>o[0]===given);
+    return {q:l, given: given&&givenOpt?`${given}) ${givenOpt[1]}`:''};
+  }));
+  if(q54.fill) drillsHtml += ssPrintBlock("C. Bo'shliqni to'ldiring", q54.fill.map((it,i)=>({q:it.q, given:s.a54.fill[i]})));
+  if(q54.translate) drillsHtml += ssPrintBlock("D. Koreyschasini yozing", q54.translate.map((it,i)=>({q:it.q, given:s.a54.translate[i]})));
+  if(q54.scramble) drillsHtml += ssPrintBlock("E. Harflar aralashgan", q54.scramble.map((it,i)=>({q:it.q, given:s.a54.scramble[i]})));
+  if(q54.order) drillsHtml += ssPrintBlock("F. Gap tartibi", q54.order.map((it,i)=>({q:it.q, given:s.a54.order[i]})));
+  if(q54.grammar) drillsHtml += ssPrintBlock("Grammatika", q54.grammar.map((it,i)=>({q:it.q, given:s.a54.grammar[i]})));
+  if(q54.build) drillsHtml += ssPrintBlock("Gap tuzish", q54.build.map((it,i)=>({q:it.q, given:s.a54.build[i]})));
   root.innerHTML = `<div class="pp">
     <div style="text-align:center;margin-bottom:16px">
       <div style="font-size:12px;letter-spacing:.15em;color:#888">GETTOPIK ONLINE</div>
-      <div style="font-size:19px;font-weight:800;margin-top:4px">TOPIK II 쓰기 — Talaba javoblari</div>
+      <div style="font-size:19px;font-weight:800;margin-top:4px">TOPIK II 쓰기 — Talaba javoblari (${ssEsc(ssSet().title)})</div>
       <div style="font-size:12.5px;color:#555;margin-top:4px">Talaba: <b>${ssEsc(DB.current)}</b> · Sana: ${new Date().toLocaleDateString('uz-UZ')}</div>
     </div>
 
@@ -3800,18 +3934,7 @@ function ssBuildPrintRoot(){
     <h2>53-savol</h2>
     ${ssManuscriptHTML(s.a53,300)}
 
-    <h2>54-savol — mashqlar</h2>
-    ${ssPrintBlock("B. Moslashtiring", SS54.match.left.map((l,i)=>{
-      const given=s.a54.match[i];
-      const givenOpt=SS54.match.rightLabeled.find(o=>o[0]===given);
-      return {q:l, given: given&&givenOpt?`${given}) ${givenOpt[1]}`:''};
-    }))}
-    ${ssPrintBlock("C. Bo'shliqni to'ldiring", SS54.fill.map((it,i)=>({q:it.q, given:s.a54.fill[i]})))}
-    ${ssPrintBlock("D. Koreyschasini yozing", SS54.translate.map((it,i)=>({q:it.q, given:s.a54.translate[i]})))}
-    ${ssPrintBlock("E. Harflar aralashgan", SS54.scramble.map((it,i)=>({q:it.q, given:s.a54.scramble[i]})))}
-    ${ssPrintBlock("F. Gap tartibi", SS54.order.map((it,i)=>({q:it.q, given:s.a54.order[i]})))}
-    ${ssPrintBlock("Grammatika", SS54.grammar.map((it,i)=>({q:it.q, given:s.a54.grammar[i]})))}
-    ${ssPrintBlock("Gap tuzish", SS54.build.map((it,i)=>({q:it.q, given:s.a54.build[i]})))}
+    ${drillsHtml?`<h2>54-savol — mashqlar</h2>${drillsHtml}`:''}
 
     <h2>54-savol — yakuniy insho</h2>
     ${ssManuscriptHTML(s.a54.essay,700)}
@@ -3847,7 +3970,7 @@ async function ssGeneratePdf(){
   }
   return pdf;
 }
-function ssPdfFilename(){ return `TOPIK_yozish_${DB.current}.pdf`.replace(/\s+/g,'_'); }
+function ssPdfFilename(){ return `TOPIK_yozish_${ssSet().title}_${DB.current}.pdf`.replace(/\s+/g,'_'); }
 function ssBlobToBase64(blob){
   return new Promise((resolve,reject)=>{
     const r=new FileReader();
@@ -3876,7 +3999,7 @@ async function ssFinishAll(){
     ssDownloadBlob(blob, ssPdfFilename());
     const uploaded=await ssUploadPdf(blob);
     s.submitted=true; s.submittedAt=Date.now(); s.uploaded=uploaded;
-    const u=U(); u.sseogiAttempts=(u.sseogiAttempts||0)+1;
+    const u=U(); if(!u.sseogiAttempts) u.sseogiAttempts={}; u.sseogiAttempts[SSID]=(u.sseogiAttempts[SSID]||0)+1;
     save();
     ssScreenDone();
   }catch(e){
@@ -3886,24 +4009,24 @@ async function ssFinishAll(){
   }
 }
 function ssRestart(){
-  const u=U(); u.sseogi=ssBlankState(); save();
+  const u=U(); u.sseogiSets[SSID]=ssBlankState(ssSet()); save();
   ssScreen51();
 }
 function ssScreenDone(){
   whoBar(1);
-  const u=U(); const n=u.sseogiAttempts||1;
+  const u=U(); const n=(u.sseogiAttempts&&u.sseogiAttempts[SSID])||1;
   const s=ssState();
   const sentMsg = s.uploaded
     ? "PDF kompyuteringizga yuklab olindi va ustozga avtomatik yuborildi."
     : "PDF kompyuteringizga yuklab olindi. Ustozga avtomatik yuborib bo'lmadi (internet yo'q edi yoki xizmat ishlamayapti) — shu faylni o'zingiz yuboring (Telegram va h.k.).";
   app.innerHTML=`<div class="card ss-card">
     <h2>✅ Rahmat, ${ssEsc(DB.current)}!</h2>
-    <p class="hint">Barcha javoblaringiz (51, 52, 53, 54) bitta PDF qilib saqlandi. ${sentMsg}</p>
+    <p class="hint">${ssEsc(ssSet().title)}dagi barcha javoblaringiz (51, 52, 53, 54) bitta PDF qilib saqlandi. ${sentMsg}</p>
     <p class="hint" style="margin-top:6px">Bu mashqni ${n}-marta ishladingiz. Xohlagancha qayta ishlashingiz mumkin.</p>
     <div class="row">
       <button class="btn" id="ssredo">Qaytadan ishlash</button>
       <button class="btn ghost" id="ssagain">PDFni qayta yuklab olish</button>
-      <button class="btn ghost" id="sshome2">Bosh sahifaga</button>
+      <button class="btn ghost" id="sshome2">쓰기 ro'yxatiga qaytish</button>
     </div>
   </div>`;
   document.getElementById('ssredo').onclick=ssRestart;
@@ -3911,7 +4034,61 @@ function ssScreenDone(){
     const pdf=await ssGeneratePdf();
     ssDownloadBlob(pdf.output('blob'), ssPdfFilename());
   };
-  document.getElementById('sshome2').onclick=screenTypes;
+  document.getElementById('sshome2').onclick=ssScreenHub;
+}
+
+/* ---- 쓰기 hub: to'plamlar ro'yxati ---- */
+function ssScreenHub(){
+  whoBar(1);
+  const u=U(); const setsU=(u&&u.sseogiSets)||{}; const attemptsU=(u&&u.sseogiAttempts)||{};
+  app.innerHTML = `<div class="card ss-card">
+    <h2>쓰기 mashqlari</h2>
+    <p class="hint">Qaysi to'plamni ishlaysiz?</p>
+    <div class="sets" style="margin-top:12px">
+      ${SSSETS.map(set=>{
+        const st=setsU[set.id];
+        const n=attemptsU[set.id]||0;
+        const status = st&&st.submitted ? `Yakunlangan (${n}-marta)` : (st&&(st.a51done||st.a52done||st.a53done) ? 'davom etilmoqda' : 'boshlanmagan');
+        return `<button class="set" data-ssid="${set.id}">
+          <div class="n" style="font-size:24px">${ssEsc(set.title)}</div>
+          <div class="m" style="color:${st&&st.submitted?'var(--ink)':'var(--muted)'}">${status}</div>
+        </button>`;
+      }).join('')}
+    </div>
+    <div class="row" style="margin-top:14px"><button class="btn ghost" id="sshubback">Orqaga</button></div>
+  </div>`;
+  app.querySelectorAll('[data-ssid]').forEach(b=>b.onclick=()=>{ SSID=b.dataset.ssid; ssScreenSetIntro(); });
+  document.getElementById('sshubback').onclick=screenTypes;
+}
+function ssScreenSetIntro(){
+  whoBar(1);
+  const set=ssSet(); const s=ssState();
+  const startLabel = s.submitted ? "Natijani ko'rish" : (s.a51done||s.a52done||s.a53done ? "Davom etish" : "Boshlash");
+  let html = `<div class="card ss-card">
+    <h2>${ssEsc(set.title)}</h2>
+    <p class="hint">51 · 52 · 53 · 54-savol mashqi</p>
+    <div class="row">
+      <button class="btn" id="ssgo">${startLabel}</button>
+      <button class="btn ghost" id="sshubback2">Orqaga</button>
+    </div>
+  </div>`;
+  if(set.vocab){
+    const keys=['q51','q52','q53','q54'].filter(k=>set.vocab[k]&&set.vocab[k].length);
+    html += `<div class="card ss-card">
+      <h3>So'zlarni yodlash</h3>
+      <p class="hint" style="margin-bottom:12px">Har bir savolda chiqqan so'zlarni alohida o'rganing.</p>
+      <div class="sets">
+        ${keys.map(k=>`<button class="set" data-vockey="${k}">
+          <div class="n" style="font-size:20px">${k.slice(1)}-savol</div>
+          <div class="m">${set.vocab[k].length} ta so'z</div>
+        </button>`).join('')}
+      </div>
+    </div>`;
+  }
+  app.innerHTML = html;
+  document.getElementById('ssgo').onclick=ssScreenRouter;
+  document.getElementById('sshubback2').onclick=ssScreenHub;
+  app.querySelectorAll('[data-vockey]').forEach(b=>b.onclick=()=>ssVocabStart(SSID, b.dataset.vockey));
 }
 
 /* ---- ustoz: talabalar PDF ro'yxati ---- */
@@ -3940,6 +4117,219 @@ function ssScreenTeacherList(){
       </div>`).join('');
     })
     .catch(()=>{ box.innerHTML="<p class=\"hint\" style=\"color:var(--no)\">Bog'lanib bo'lmadi.</p>"; });
+}
+
+/* ---- so'zlarni yodlash (tanishtiruv → puzzle → 4 variant → yozib yodlash) ----
+   Bu bo'lim talaba javoblari bilan bog'liq emas — natija saqlanmaydi, faqat
+   mashq/o'rganish maqsadida, VOCAB runtime obyektida ishlaydi. */
+function ssMakeRounds(words, size){
+  size = size||10;
+  const n=words.length;
+  if(n===0) return [];
+  const full=Math.floor(n/size);
+  const rem=n%size;
+  const count = rem>0 ? (rem<=5 ? Math.max(full,1) : full+1) : Math.max(full,1);
+  const rounds=[];
+  for(let i=0;i<count;i++){
+    if(i===count-1) rounds.push(words.slice(i*size));
+    else rounds.push(words.slice(i*size,(i+1)*size));
+  }
+  return rounds;
+}
+let VOCAB=null;
+function ssVocabWords(){ return VOCAB.rounds[VOCAB.roundIdx]; }
+function ssVocabStart(setId, qKey){
+  const set=SSSETS.find(x=>x.id===setId);
+  const words=set.vocab[qKey];
+  VOCAB={ setId, qKey, rounds:ssMakeRounds(words,10), roundIdx:0, step:'intro', wordIdx:0 };
+  ssVocabRender();
+}
+function ssVocabBack(){ SSID=VOCAB.setId; ssScreenSetIntro(); }
+function ssVocabHeader(stepLabel){
+  const words=ssVocabWords();
+  return `<p class="hint" style="margin-bottom:10px">${VOCAB.qKey.slice(1)}-savol so'zlari · ${VOCAB.roundIdx+1}/${VOCAB.rounds.length}-round · ${stepLabel} (${VOCAB.wordIdx+1}/${words.length})</p>`;
+}
+function ssVocabRender(){
+  whoBar(1);
+  if(VOCAB.step==='intro') return ssVocabIntro();
+  if(VOCAB.step==='puzzle') return ssVocabPuzzle();
+  if(VOCAB.step==='choice') return ssVocabChoice();
+  if(VOCAB.step==='write') return ssVocabWrite();
+  if(VOCAB.step==='roundDone') return ssVocabRoundDone();
+  return ssVocabDone();
+}
+function ssVocabIntro(){
+  const words=ssVocabWords(); const w=words[VOCAB.wordIdx];
+  app.innerHTML=`<div class="card ss-card">
+    <h2>So'zlar bilan tanishish</h2>
+    ${ssVocabHeader('tanishtiruv')}
+    <div class="ss-vocab-flash">
+      <div class="ko">${ssEsc(w[0])}</div>
+      <div class="uz">${ssEsc(w[1])}</div>
+    </div>
+    <div class="row">
+      <button class="btn" id="ssvnext">${VOCAB.wordIdx+1<words.length?"Keyingisi":"Puzzle'ga o'tish"}</button>
+      <button class="btn ghost" id="ssvback">Orqaga</button>
+    </div>
+  </div>`;
+  document.getElementById('ssvback').onclick=ssVocabBack;
+  document.getElementById('ssvnext').onclick=()=>{
+    if(VOCAB.wordIdx+1<words.length){ VOCAB.wordIdx++; }
+    else { VOCAB.step='puzzle'; VOCAB.wordIdx=0; }
+    ssVocabRender();
+  };
+}
+function ssVocabPuzzle(){
+  const words=ssVocabWords(); const w=words[VOCAB.wordIdx];
+  const syll=[...w[0]].filter(c=>c!==' ');
+  if(!VOCAB.puzzleShuffled || VOCAB.puzzleWordIdx!==VOCAB.wordIdx){
+    VOCAB.puzzleShuffled=shuffle(syll.map((c,i)=>({c,i})));
+    VOCAB.puzzleAnswer=[];
+    VOCAB.puzzleWordIdx=VOCAB.wordIdx;
+    VOCAB.puzzleChecked=false;
+  }
+  const used=new Set(VOCAB.puzzleAnswer.map(x=>x.i));
+  app.innerHTML=`<div class="card ss-card">
+    <h2>So'z puzzle</h2>
+    ${ssVocabHeader('puzzle')}
+    <p class="hint">Ma'nosi: <b style="color:var(--ink)">${ssEsc(w[1])}</b></p>
+    <div class="ss-puzzle-answer">${VOCAB.puzzleAnswer.length?VOCAB.puzzleAnswer.map(x=>ssEsc(x.c)).join(''):'&nbsp;'}</div>
+    <div class="ss-puzzle-tiles">
+      ${VOCAB.puzzleShuffled.map((x,ti)=>`<button class="ss-puzzle-tile" data-ti="${ti}" ${used.has(x.i)?'disabled':''}>${ssEsc(x.c)}</button>`).join('')}
+    </div>
+    <div class="row">
+      <button class="btn ghost" id="ssvclear">Tozalash</button>
+      ${VOCAB.puzzleChecked?`<button class="btn" id="ssvnext">${VOCAB.wordIdx+1<words.length?"Keyingisi":"Tanlashga o'tish"}</button>`:''}
+      <button class="btn ghost" id="ssvback">Orqaga</button>
+    </div>
+    ${VOCAB.puzzleChecked?(VOCAB.puzzleOk?`<div class="ss-correct">To'g'ri!</div>`:`<div class="ss-wrong">Noto'g'ri. To'g'ri javob: ${ssEsc(w[0])}</div>`):''}
+  </div>`;
+  document.getElementById('ssvback').onclick=ssVocabBack;
+  document.getElementById('ssvclear').onclick=()=>{ VOCAB.puzzleAnswer=[]; VOCAB.puzzleChecked=false; ssVocabRender(); };
+  app.querySelectorAll('.ss-puzzle-tile').forEach(btn=>btn.onclick=()=>{
+    if(VOCAB.puzzleChecked) return;
+    const ti=+btn.dataset.ti; const item=VOCAB.puzzleShuffled[ti];
+    VOCAB.puzzleAnswer.push(item);
+    if(VOCAB.puzzleAnswer.length===syll.length){
+      VOCAB.puzzleChecked=true;
+      VOCAB.puzzleOk=VOCAB.puzzleAnswer.map(x=>x.c).join('')===syll.join('');
+    }
+    ssVocabRender();
+  });
+  const nextBtn=document.getElementById('ssvnext');
+  if(nextBtn) nextBtn.onclick=()=>{
+    if(VOCAB.wordIdx+1<words.length){ VOCAB.wordIdx++; }
+    else { VOCAB.step='choice'; VOCAB.wordIdx=0; }
+    ssVocabRender();
+  };
+}
+function ssVocabChoice(){
+  const words=ssVocabWords(); const w=words[VOCAB.wordIdx];
+  if(!VOCAB.choiceOpts || VOCAB.choiceWordIdx!==VOCAB.wordIdx){
+    const pool=words.filter((x,i)=>i!==VOCAB.wordIdx).map(x=>x[0]);
+    let distractors=shuffle(pool).slice(0,3);
+    if(distractors.length<3){
+      const allWords=SSSETS.find(x=>x.id===VOCAB.setId).vocab[VOCAB.qKey].map(x=>x[0]).filter(x=>x!==w[0]&&!distractors.includes(x));
+      const extra=shuffle(allWords);
+      while(distractors.length<3 && extra.length) distractors.push(extra.pop());
+    }
+    VOCAB.choiceOpts=shuffle([w[0], ...distractors]);
+    VOCAB.choiceWordIdx=VOCAB.wordIdx;
+    VOCAB.choicePicked=null;
+  }
+  app.innerHTML=`<div class="card ss-card">
+    <h2>To'g'ri so'zni tanlang</h2>
+    ${ssVocabHeader('4 variant')}
+    <p class="hint">Ma'nosi: <b style="color:var(--ink)">${ssEsc(w[1])}</b></p>
+    <div class="opts" style="margin-top:14px">
+      ${VOCAB.choiceOpts.map((o,oi)=>{
+        let cls='opt';
+        if(VOCAB.choicePicked!=null){
+          if(o===w[0]) cls+=' ok';
+          else if(oi===VOCAB.choicePicked) cls+=' no';
+        }
+        return `<button class="${cls}" data-oi="${oi}" ${VOCAB.choicePicked!=null?'disabled':''}>${ssEsc(o)}</button>`;
+      }).join('')}
+    </div>
+    <div class="row">
+      ${VOCAB.choicePicked!=null?`<button class="btn" id="ssvnext">${VOCAB.wordIdx+1<words.length?"Keyingisi":"Yozishga o'tish"}</button>`:''}
+      <button class="btn ghost" id="ssvback">Orqaga</button>
+    </div>
+  </div>`;
+  document.getElementById('ssvback').onclick=ssVocabBack;
+  app.querySelectorAll('[data-oi]').forEach(btn=>btn.onclick=()=>{
+    if(VOCAB.choicePicked!=null) return;
+    VOCAB.choicePicked=+btn.dataset.oi;
+    ssVocabRender();
+  });
+  const nextBtn=document.getElementById('ssvnext');
+  if(nextBtn) nextBtn.onclick=()=>{
+    if(VOCAB.wordIdx+1<words.length){ VOCAB.wordIdx++; }
+    else { VOCAB.step='write'; VOCAB.wordIdx=0; }
+    ssVocabRender();
+  };
+}
+function ssVocabWrite(){
+  const words=ssVocabWords(); const w=words[VOCAB.wordIdx];
+  app.innerHTML=`<div class="card ss-card">
+    <h2>Yozib yodlang</h2>
+    ${ssVocabHeader('yozish')}
+    <p class="hint">Ma'nosi: <b style="color:var(--ink)">${ssEsc(w[1])}</b></p>
+    <input type="text" id="ssvwrite" placeholder="한국어" ${VOCAB.writeChecked?'disabled':''} value="${ssEsc(VOCAB.writeVal||'')}">
+    ${VOCAB.writeChecked?(VOCAB.writeOk?`<div class="ss-correct">To'g'ri!</div>`:`<div class="ss-wrong">Sizning javobingiz: <b>${ssEsc(VOCAB.writeVal||'—')}</b> — noto'g'ri. To'g'ri javob: ${ssEsc(w[0])}</div>`):''}
+    <div class="row">
+      ${VOCAB.writeChecked?`<button class="btn" id="ssvnext">${VOCAB.wordIdx+1<words.length?"Keyingisi":"Roundni yakunlash"}</button>`
+        :`<button class="btn" id="ssvcheck">Tekshirish</button>`}
+      <button class="btn ghost" id="ssvback">Orqaga</button>
+    </div>
+  </div>`;
+  document.getElementById('ssvback').onclick=ssVocabBack;
+  const inp=document.getElementById('ssvwrite');
+  if(!VOCAB.writeChecked){
+    inp.focus();
+    inp.addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('ssvcheck').click(); });
+    document.getElementById('ssvcheck').onclick=()=>{
+      VOCAB.writeVal=inp.value;
+      VOCAB.writeChecked=true;
+      VOCAB.writeOk=ssNorm(inp.value)===ssNorm(w[0]);
+      ssVocabRender();
+    };
+  } else {
+    document.getElementById('ssvnext').onclick=()=>{
+      if(VOCAB.wordIdx+1<words.length){
+        VOCAB.wordIdx++; VOCAB.writeChecked=false; VOCAB.writeVal='';
+      } else if(VOCAB.roundIdx+1<VOCAB.rounds.length){
+        VOCAB.step='roundDone';
+      } else {
+        VOCAB.step='done';
+      }
+      ssVocabRender();
+    };
+  }
+}
+function ssVocabRoundDone(){
+  app.innerHTML=`<div class="card ss-card">
+    <h2>✅ ${VOCAB.roundIdx+1}-round tugadi!</h2>
+    <p class="hint">Keyingi roundga o'tamizmi?</p>
+    <div class="row">
+      <button class="btn" id="ssvnextround">Keyingi round</button>
+      <button class="btn ghost" id="ssvback">Orqaga</button>
+    </div>
+  </div>`;
+  document.getElementById('ssvback').onclick=ssVocabBack;
+  document.getElementById('ssvnextround').onclick=()=>{
+    VOCAB.roundIdx++; VOCAB.wordIdx=0; VOCAB.step='intro';
+    VOCAB.puzzleShuffled=null; VOCAB.choiceOpts=null; VOCAB.writeChecked=false; VOCAB.writeVal='';
+    ssVocabRender();
+  };
+}
+function ssVocabDone(){
+  app.innerHTML=`<div class="card ss-card">
+    <h2>🎉 Barcha so'zlar tugatildi!</h2>
+    <p class="hint">${VOCAB.qKey.slice(1)}-savol so'zlarini muvaffaqiyatli yakunladingiz.</p>
+    <div class="row"><button class="btn" id="ssvback">Orqaga</button></div>
+  </div>`;
+  document.getElementById('ssvback').onclick=ssVocabBack;
 }
 
 /* ---- kirish nuqtasi ---- */
