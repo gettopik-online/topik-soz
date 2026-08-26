@@ -245,17 +245,17 @@
   .ss-savedmsg{background:#EAF7EE;border:1px solid var(--ok);color:var(--ok);border-radius:11px;padding:14px 16px;font-weight:700;margin-top:14px}
 
   #ssPrintRoot{position:absolute;top:-10000px;left:0;width:780px;background:#fff;color:#111}
-  #ssPrintRoot .pp{padding:26px 30px}
+  #ssPrintRoot .pp{padding:26px 24px}
   #ssPrintRoot h2{font-size:16px;border-bottom:2px solid #111;padding-bottom:6px;margin:18px 0 10px}
   #ssPrintRoot h2:first-of-type{margin-top:0}
   #ssPrintRoot .qa{margin:0 0 10px;font-size:12px;line-height:1.6}
   #ssPrintRoot .qa .g{color:#555}
   #ssPrintRoot .qa .c{color:#127A4B;font-weight:700}
   #ssPrintRoot .blk b{display:block;font-size:12.5px;margin:10px 0 6px}
-  #ssPrintRoot .ss-manu-cell{width:16px;height:18px;font-size:9px}
-  #ssPrintRoot .ss-manu-cell.pack{font-size:6px}
-  #ssPrintRoot .ss-manu-num{width:24px;font-size:7px}
-  #ssPrintRoot .ss-manu-v{top:-5px;font-size:6px}
+  #ssPrintRoot .ss-manu-cell{width:27px;height:30px;font-size:15px}
+  #ssPrintRoot .ss-manu-cell.pack{font-size:10px}
+  #ssPrintRoot .ss-manu-num{width:26px;font-size:8px}
+  #ssPrintRoot .ss-manu-v{top:-6px;font-size:8px}
 </style>
 </head>
 <body>
@@ -3916,7 +3916,11 @@ function ssBuildPrintRoot(){
   if(q54.order) drillsHtml += ssPrintBlock("F. Gap tartibi", q54.order.map((it,i)=>({q:it.q, given:s.a54.order[i]})));
   if(q54.grammar) drillsHtml += ssPrintBlock("Grammatika", q54.grammar.map((it,i)=>({q:it.q, given:s.a54.grammar[i]})));
   if(q54.build) drillsHtml += ssPrintBlock("Gap tuzish", q54.build.map((it,i)=>({q:it.q, given:s.a54.build[i]})));
-  root.innerHTML = `<div class="pp">
+  // 51+52, 53, 54 — har biri ALOHIDA <div class="pp pdf-section"> ichida, shunda
+  // PDF yasashda har bir savol guruhi doim YANGI sahifadan boshlanadi (mexanik
+  // balandlik bo'yicha kesish o'rniga), va grid o'rtasidan bo'linib qolmaydi.
+  root.innerHTML = `
+  <div class="pp pdf-section">
     <div style="text-align:center;margin-bottom:16px">
       <div style="font-size:12px;letter-spacing:.15em;color:#888">GETTOPIK ONLINE</div>
       <div style="font-size:19px;font-weight:800;margin-top:4px">TOPIK II 쓰기 — Talaba javoblari (${ssEsc(ssSet().title)})</div>
@@ -3930,43 +3934,49 @@ function ssBuildPrintRoot(){
     <h2>52-savol</h2>
     <div class="qa">ㄱ: ${ssEsc(s.a52.g||'—')}</div>
     <div class="qa">ㄴ: ${ssEsc(s.a52.n||'—')}</div>
+  </div>
 
-    <h2>53-savol</h2>
+  <div class="pp pdf-section">
+    <h2 style="margin-top:0">53-savol</h2>
     ${ssManuscriptHTML(s.a53,300)}
+  </div>
 
-    ${drillsHtml?`<h2>54-savol — mashqlar</h2>${drillsHtml}`:''}
-
-    <h2>54-savol — yakuniy insho</h2>
+  <div class="pp pdf-section">
+    ${drillsHtml?`<h2 style="margin-top:0">54-savol — mashqlar</h2>${drillsHtml}<h2>54-savol — yakuniy insho</h2>`:`<h2 style="margin-top:0">54-savol — yakuniy insho</h2>`}
     ${ssManuscriptHTML(s.a54.essay,700)}
   </div>`;
 }
 async function ssGeneratePdf(){
   // Koreyscha (한글) matn jsPDF'ning standart lotin shriftida chizilmaydi, shuning uchun
-  // butun sahifa html2canvas bilan rasmga olinadi. Bitta ulkan rasmni manfiy offset bilan
-  // "kesib" har sahifaga qo'yish ba'zi PDF o'quvchilarni (masalan poppler) buzilishga
-  // olib kelgani aniqlandi — shuning uchun har PDF sahifasi uchun ALOHIDA, aniq o'lchamli
-  // PNG rasm yasab, uni sahifaga (0,0) dan oddiy joylashtiramiz.
+  // har bir savol guruhi (51+52 / 53 / 54) html2canvas bilan ALOHIDA rasmga olinadi va
+  // ALOHIDA yangi sahifadan boshlanadi — shu bilan 53/54 grid'lari boshqa savollar bilan
+  // bitta sahifaga siqilib, o'rtasidan bo'linib qolishining oldi olinadi. Har bir savol
+  // guruhi ichida, agar u bitta sahifaga sig'masa (masalan uzun insho), aniq o'lchamli
+  // PNG bo'laklarga bo'linib navbatdagi sahifalarga qo'yiladi.
   await ssLoadLibs();
   ssBuildPrintRoot();
-  const root=document.getElementById('ssPrintRoot');
-  const canvas=await html2canvas(root, {scale:2, useCORS:true, windowWidth:780});
+  const sections=[...document.querySelectorAll('#ssPrintRoot .pdf-section')];
   const pdf=new jspdf.jsPDF({unit:'pt',format:'a4'});
   const pageW=595.28, pageH=841.89;
-  const pagePx=Math.floor(canvas.width*(pageH/pageW));
-  let renderedPx=0, first=true;
-  while(renderedPx<canvas.height){
-    const sliceH=Math.min(pagePx, canvas.height-renderedPx);
-    const pageCanvas=document.createElement('canvas');
-    pageCanvas.width=canvas.width;
-    pageCanvas.height=sliceH;
-    const ctx=pageCanvas.getContext('2d');
-    ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,sliceH);
-    ctx.drawImage(canvas, 0,renderedPx,canvas.width,sliceH, 0,0,canvas.width,sliceH);
-    const drawH=sliceH*(pageW/canvas.width);
-    if(!first) pdf.addPage();
-    pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.88), 'JPEG', 0, 0, pageW, drawH);
-    renderedPx+=sliceH;
-    first=false;
+  let first=true;
+  for(const sec of sections){
+    const canvas=await html2canvas(sec, {scale:2, useCORS:true, windowWidth:780});
+    const pagePx=Math.floor(canvas.width*(pageH/pageW));
+    let renderedPx=0;
+    while(renderedPx<canvas.height){
+      const sliceH=Math.min(pagePx, canvas.height-renderedPx);
+      const pageCanvas=document.createElement('canvas');
+      pageCanvas.width=canvas.width;
+      pageCanvas.height=sliceH;
+      const ctx=pageCanvas.getContext('2d');
+      ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,sliceH);
+      ctx.drawImage(canvas, 0,renderedPx,canvas.width,sliceH, 0,0,canvas.width,sliceH);
+      const drawH=sliceH*(pageW/canvas.width);
+      if(!first) pdf.addPage();
+      pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.88), 'JPEG', 0, 0, pageW, drawH);
+      renderedPx+=sliceH;
+      first=false;
+    }
   }
   return pdf;
 }
