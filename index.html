@@ -6017,9 +6017,36 @@ const SS2_VOCAB = {
     ["법적 기준","huquqiy me'yor"],["윤리적 책임","axloqiy mas'uliyat"],["확대하다","kengaytirmoq"]
   ]
 };
+const SS3_51 = {
+  intro:"제목: 워크숍 일정 변경 안내\n\n안녕하세요. 기획팀입니다.\n다음 달 초로 예정되어 있던 전체 워크숍 날짜가 ( ㄱ ).\n장소는 변경 없이 그대로 진행됩니다.\n자세한 일정은 첨부된 파일에서 ( ㄴ ).\n협조 부탁드립니다."
+};
+const SS3_52 = {
+  intro:"바다거북은 알을 낳을 때가 되면 수천 킬로미터를 헤엄쳐 자신이 태어난 바로 그 해변으로 돌아온다. 이렇게 정확한 위치를 ( ㄱ ) 것은 바다거북이 지구의 자기장을 감지할 수 있기 때문이다. 새끼 바다거북은 알에서 깨어나는 순간 주변 자기장의 세기를 기억해 두었다가, 나중에 그 정보를 ( ㄴ ). 이 능력 덕분에 바다거북은 망망대해에서도 길을 잃지 않고 고향으로 돌아갈 수 있다."
+};
+const SS3_53 = {
+  layout:'linebar', topicTitle:"초중고생 스마트폰 사용 시간 및 시력 저하 학생 비율 변화", causeLabel:"원인",
+  source:"교육부",
+  line:{ title:"하루 평균 스마트폰 사용 시간", unit:"(단위: 시간)", suffix:"시간", points:[["2013년",1.5],["2023년",4]] },
+  bar:{ title:"시력 저하(근시) 학생 비율", unit:"(단위: %)", bars:[["2013년",42],["2023년",68]] },
+  outlook:["스마트폰과 태블릿 사용 시간 증가","실외 활동 시간 감소"]
+};
+const SS3_VOCAB = {
+  q51:[["워크숍","seminar-treninq"],["일정","jadval"],["변경","o'zgarish"],["안내","xabar, ma'lumot"],
+       ["기획팀","reja bo'limi"],["예정되다","rejalashtirilmoq"],["그대로","o'zgarishsiz, xuddi shunday"],
+       ["첨부되다","biriktirilmoq (fayl)"],["협조","hamkorlik"]],
+  q52:[["바다거북","dengiz toshbaqasi"],["알을 낳다","tuxum qo'ymoq"],["헤엄치다","suzmoq"],
+       ["해변","qirg'oq"],["자기장","magnit maydon"],["감지하다","sezmoq, aniqlamoq"],
+       ["깨어나다","uyg'onmoq"],["기억해 두다","eslab qolmoq"],["망망대해","cheksiz katta dengiz"],
+       ["고향","vatan, tug'ilgan joy"]],
+  q53:[["초중고생","boshlang'ich/o'rta/yuqori sinf o'quvchilari"],["시력 저하","ko'rish qobiliyatining pasayishi"],
+       ["조사 기관","tadqiqot muassasasi"],["근시","miyopiya (yaqindan ko'rish)"],
+       ["태블릿","planshet"],["실외 활동","tashqi (ochiq havoda) faoliyat"],
+       ["증가","ortish"],["감소","kamayish"]]
+};
 const SSSETS = [
   { id:'ss1', title:"쓰기 1", q51:SS1_51, q52:SS1_52, q53:SS1_53, q54:SS1_54, vocab:null },
-  { id:'ss2', title:"쓰기 2", q51:SS2_51, q52:SS2_52, q53:SS2_53, q54:SS2_54, vocab:SS2_VOCAB }
+  { id:'ss2', title:"쓰기 2", q51:SS2_51, q52:SS2_52, q53:SS2_53, q54:SS2_54, vocab:SS2_VOCAB },
+  { id:'ss3', title:"쓰기 3", q51:SS3_51, q52:SS3_52, q53:SS3_53, vocab:SS3_VOCAB }
 ];
 function ssSet(){ return SSSETS.find(x=>x.id===SSID) || SSSETS[0]; }
 function ssBlankState(setDef){
@@ -6153,7 +6180,7 @@ function ssLoadLibs(){
   ]);
 }
 function ssSteps(active){
-  const order=['51','52','53','54'];
+  const order = ssSet().q54 ? ['51','52','53','54'] : ['51','52','53'];
   const cur=order.indexOf(active);
   return `<div class="ss-steps">${order.map((k,i)=>{
     const cls = k===active?'on' : (i<cur?'done':'');
@@ -6210,7 +6237,8 @@ function ssScreen52(){ ssScreenBlank('52', ssSet().q52, ()=>ssScreen53()); }
 
 /* ---- 53 ---- */
 const SS_PERSON_SVG='<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><circle cx="12" cy="7" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8z"/></svg>';
-function ssLineChartSVG(points, max){
+function ssLineChartSVG(points, max, unit){
+  if(unit===undefined) unit='명';
   const w=200, h=90, pad=26;
   const stepX = points.length>1 ? (w-pad*2)/(points.length-1) : 0;
   const scaleY = v => h-pad - (v/max)*(h-pad*2);
@@ -6219,7 +6247,7 @@ function ssLineChartSVG(points, max){
   return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;max-width:220px;height:auto;display:block;margin:0 auto">
     <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2"/>
     ${coords.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="var(--accent)"/>
-      <text x="${p[0]}" y="${p[1]-8}" font-size="11" text-anchor="middle" font-weight="700" fill="var(--ink)">${ssEsc(points[i][1]+'명')}</text>
+      <text x="${p[0]}" y="${p[1]-8}" font-size="11" text-anchor="middle" font-weight="700" fill="var(--ink)">${ssEsc(points[i][1]+unit)}</text>
       <text x="${p[0]}" y="${h-6}" font-size="9" text-anchor="middle" fill="var(--muted)">${ssEsc(points[i][0])}</text>`).join('')}
   </svg>`;
 }
@@ -6313,9 +6341,28 @@ function ssChart53PetHTML(c){
   </div>
   <div class="ss-cause"><b>${ssEsc(c.causeLabel||'원인')}</b>${c.outlook.map(o=>`· ${ssEsc(o)}`).join('<br>')}</div>`;
 }
+function ssChart53LineBarHTML(c){
+  const maxLine=Math.max(...c.line.points.map(p=>p[1]));
+  const maxBar=Math.max(...c.bar.bars.map(b=>b[1]));
+  return `
+  <p class="hint" style="margin-bottom:10px">· 조사 기관: ${ssEsc(c.source)}</p>
+  <div class="ss-53grid-2col">
+    <div class="ss-53box">
+      <div class="ss-53box-title">${ssEsc(c.line.title)} <span class="ss-53unit">${ssEsc(c.line.unit)}</span></div>
+      ${ssLineChartSVG(c.line.points, maxLine, c.line.suffix)}
+    </div>
+    <div class="ss-53box">
+      <div class="ss-53box-title">${ssEsc(c.bar.title)} <span class="ss-53unit">${ssEsc(c.bar.unit)}</span></div>
+      ${ssBarChartHTML(c.bar.bars, maxBar)}
+    </div>
+  </div>
+  <div class="ss-cause"><b>${ssEsc(c.causeLabel||'원인')}</b>${c.outlook.map(o=>`· ${ssEsc(o)}`).join('<br>')}</div>`;
+}
 function ssChart53HTML(){
   const c=ssSet().q53;
-  return c.layout==='petindustry' ? ssChart53PetHTML(c) : ssChart53HouseholdHTML(c);
+  if(c.layout==='petindustry') return ssChart53PetHTML(c);
+  if(c.layout==='linebar') return ssChart53LineBarHTML(c);
+  return ssChart53HouseholdHTML(c);
 }
 function ssScreen53(){
   whoBar(1);
@@ -6331,7 +6378,7 @@ function ssScreen53(){
       <div class="ss-counter" id="sscnt53">0 / 300자 (200~300 oralig'ida, 띄어쓰기 포함)</div>
       <div id="ssmanu53"></div>
       ${s.a53done
-        ?`<div class="ss-savedmsg">✅ Javobingiz saqlandi.</div><div class="row"><button class="btn" id="ssnext">Keyingisiga o'tish (54-savol)</button></div>`
+        ?`<div class="ss-savedmsg">✅ Javobingiz saqlandi.</div><div class="row"><button class="btn" id="ssnext">${ssSet().q54?"Keyingisiga o'tish (54-savol)":"Yakunlash va PDF yaratish"}</button></div>`
         :`<div class="row"><button class="btn" id="sssubmit53">Yuborish</button></div>`}
     </div>`;
   const ta=document.getElementById('ssta53');
@@ -6346,7 +6393,7 @@ function ssScreen53(){
   if(!s.a53done){
     document.getElementById('sssubmit53').onclick=()=>{ s.a53=ta.value.trim(); s.a53done=true; save(); ssScreen53(); };
   } else {
-    document.getElementById('ssnext').onclick=()=>ssScreen54();
+    document.getElementById('ssnext').onclick=()=>{ ssSet().q54 ? ssScreen54() : ssFinishAll(); };
   }
 }
 
@@ -6505,17 +6552,19 @@ function ssBuildPrintRoot(){
   const s=ssState(); const q54=ssSet().q54;
   const root=document.getElementById('ssPrintRoot');
   let drillsHtml='';
-  if(q54.match) drillsHtml += ssPrintBlock("B. Moslashtiring", q54.match.left.map((l,i)=>{
-    const given=s.a54.match[i];
-    const givenOpt=q54.match.rightLabeled.find(o=>o[0]===given);
-    return {q:l, given: given&&givenOpt?`${given}) ${givenOpt[1]}`:''};
-  }));
-  if(q54.fill) drillsHtml += ssPrintBlock("C. Bo'shliqni to'ldiring", q54.fill.map((it,i)=>({q:it.q, given:s.a54.fill[i]})));
-  if(q54.translate) drillsHtml += ssPrintBlock("D. Koreyschasini yozing", q54.translate.map((it,i)=>({q:it.q, given:s.a54.translate[i]})));
-  if(q54.scramble) drillsHtml += ssPrintBlock("E. Harflar aralashgan", q54.scramble.map((it,i)=>({q:it.q, given:s.a54.scramble[i]})));
-  if(q54.order) drillsHtml += ssPrintBlock("F. Gap tartibi", q54.order.map((it,i)=>({q:it.q, given:s.a54.order[i]})));
-  if(q54.grammar) drillsHtml += ssPrintBlock("Grammatika", q54.grammar.map((it,i)=>({q:it.q, given:s.a54.grammar[i]})));
-  if(q54.build) drillsHtml += ssPrintBlock("Gap tuzish", q54.build.map((it,i)=>({q:it.q, given:s.a54.build[i]})));
+  if(q54){
+    if(q54.match) drillsHtml += ssPrintBlock("B. Moslashtiring", q54.match.left.map((l,i)=>{
+      const given=s.a54.match[i];
+      const givenOpt=q54.match.rightLabeled.find(o=>o[0]===given);
+      return {q:l, given: given&&givenOpt?`${given}) ${givenOpt[1]}`:''};
+    }));
+    if(q54.fill) drillsHtml += ssPrintBlock("C. Bo'shliqni to'ldiring", q54.fill.map((it,i)=>({q:it.q, given:s.a54.fill[i]})));
+    if(q54.translate) drillsHtml += ssPrintBlock("D. Koreyschasini yozing", q54.translate.map((it,i)=>({q:it.q, given:s.a54.translate[i]})));
+    if(q54.scramble) drillsHtml += ssPrintBlock("E. Harflar aralashgan", q54.scramble.map((it,i)=>({q:it.q, given:s.a54.scramble[i]})));
+    if(q54.order) drillsHtml += ssPrintBlock("F. Gap tartibi", q54.order.map((it,i)=>({q:it.q, given:s.a54.order[i]})));
+    if(q54.grammar) drillsHtml += ssPrintBlock("Grammatika", q54.grammar.map((it,i)=>({q:it.q, given:s.a54.grammar[i]})));
+    if(q54.build) drillsHtml += ssPrintBlock("Gap tuzish", q54.build.map((it,i)=>({q:it.q, given:s.a54.build[i]})));
+  }
   // 51+52, 53, 54 — har biri ALOHIDA <div class="pp pdf-section"> ichida, shunda
   // PDF yasashda har bir savol guruhi doim YANGI sahifadan boshlanadi (mexanik
   // balandlik bo'yicha kesish o'rniga), va grid o'rtasidan bo'linib qolmaydi.
@@ -6541,10 +6590,10 @@ function ssBuildPrintRoot(){
     ${ssManuscriptHTML(s.a53,300)}
   </div>
 
-  <div class="pp pdf-section">
+  ${q54?`<div class="pp pdf-section">
     ${drillsHtml?`<h2 style="margin-top:0">54-savol — mashqlar</h2>${drillsHtml}<h2>54-savol — yakuniy insho</h2>`:`<h2 style="margin-top:0">54-savol — yakuniy insho</h2>`}
     ${ssManuscriptHTML(s.a54.essay,700)}
-  </div>`;
+  </div>`:''}`;
 }
 async function ssGeneratePdf(){
   // Koreyscha (한글) matn jsPDF'ning standart lotin shriftida chizilmaydi, shuning uchun
@@ -6957,7 +7006,8 @@ function ssScreenRouter(){
   if(!s.a51done) return ssScreen51();
   if(!s.a52done) return ssScreen52();
   if(!s.a53done) return ssScreen53();
-  return ssScreen54();
+  if(ssSet().q54) return ssScreen54();
+  return ssFinishAll();
 }
 
 /* ---- start ---- */
