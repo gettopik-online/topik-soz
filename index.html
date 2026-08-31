@@ -7379,10 +7379,48 @@ const SS3_VOCAB = {
        ["태블릿","planshet"],["실외 활동","tashqi (ochiq havoda) faoliyat"],
        ["증가","ortish"],["감소","kamayish"]]
 };
+const SS4_51 = {
+  intro:"< 목록보기　　　　　　　　　　　　　　　　　　　　　　　　　　　　자유 게시판\n제목: 강아지를 무료로 드립니다.　　　　작성자: 김준기　　2020-10-09 (금)\n\n강아지를 키우실 분을 찾습니다.\n지난주에 저희 집에 강아지 네 마리가 태어났습니다.\n하지만 저희 집이 작아서 네 마리를 모두 ( ㄱ ).\n그래서 강아지가 필요하신 분께 무료로 드리려고 합니다.\n강아지를 데려가실 분은 ( ㄴ ).\n제 전화번호는 010-1234-5678입니다.\n\n강아지 사진은 아래 첨부 파일을 확인해 보시면 됩니다."
+};
+const SS4_52 = {
+  intro:"사람의 혀는 단맛, 쓴맛, 짠맛, 신맛 외에 온도를 느낀다. 그리고 온도에 따라 맛을 더 강하게 느끼거나 약하게 느끼게 된다. 치킨은 뜨거울 때 먹고 맥주는 시원할 때 마셔야 그 맛을 제대로 즐길 수 있다. 치킨이 차갑고 맥주가 미지근하면 제맛을 ( ㄱ ). 왜냐하면 같은 음식이라도 온도에 따라 느껴지는 맛이 ( ㄴ )."
+};
+const SS4_53 = {
+  layout:'barforecast', topicTitle:"귀촌 인구의 변화", causeLabel:"증가 원인",
+  source:null,
+  bar:{ title:"귀촌 인구 수", unit:"(단위: 만 명)", points:[["2008년",27],["2013년",42],["2018년",51]] },
+  outlook:["수도권 지역의 주거난 심각","취업난과 조기 퇴직 등으로 인한 일자리 불안"],
+  forecast:["귀촌 인구 수 60만 명(2020년)"]
+};
+const SS4_54 = {
+  title:"고령화 사회의 문제점과 대책",
+  passage:"출산율이 저하되고 평균 수명이 늘어나면서 65세 이상 노인 인구가 증가하고 있다. 고령화 사회로 진입하면서 여러 가지 문제점이 나타나고 있다. 아래 내용을 중심으로 '고령화 사회의 문제점과 대책'에 대한 자신의 생각을 쓰라.",
+  bullets:[
+    "고령화 사회의 원인은 무엇인가?",
+    "고령화 사회의 문제점은 무엇인가?",
+    "고령화 사회에 대처하기 위해 어떤 대책을 마련해야 하는가?"
+  ],
+  essayPrompt:"'고령화 사회의 문제점과 대책'에 대한 자신의 생각을 600~700자로 쓰시오."
+};
+const SS4_VOCAB = {
+  q51:[["목록보기","ro'yxatga qaytish"],["게시판","forum, e'lonlar taxtasi"],["작성자","muallif"],
+       ["첨부 파일","biriktirilgan fayl"],["데려가다","olib ketmoq"],["태어나다","tug'ilmoq"],
+       ["필요하다","kerak bo'lmoq"],["확인해 보다","tekshirib ko'rmoq"]],
+  q52:[["혀","til (a'zo)"],["단맛","shirin ta'm"],["쓴맛","achchiq ta'm"],["짠맛","sho'r ta'm"],
+       ["신맛","nordon ta'm"],["온도","harorat"],["제맛","o'z ta'mi, haqiqiy ta'm"],
+       ["미지근하다","iliq (na issiq, na sovuq)"],["시원하다","salqin, xushbo'y"]],
+  q53:[["귀촌","qishloqqa qaytish"],["인구","aholi"],["주거난","turar-joy tanqisligi"],
+       ["취업난","ishga joylashish qiyinchiligi"],["조기 퇴직","muddatidan oldin nafaqaga chiqish"],
+       ["일자리","ish o'rni"],["불안","xavotir, beqarorlik"],["수도권","poytaxt hududi"]],
+  q54:[["출산율","tug'ilish darajasi"],["저하되다","pasaymoq"],["평균 수명","o'rtacha umr ko'rish davri"],
+       ["노인 인구","keksalar aholisi"],["고령화","aholining qarishi"],["진입하다","kirib bormoq"],
+       ["대처하다","chora ko'rmoq"],["대책","chora-tadbir"],["마련하다","tayyorlamoq, yo'lga qo'ymoq"]]
+};
 const SSSETS = [
   { id:'ss1', title:"쓰기 1", q51:SS1_51, q52:SS1_52, q53:SS1_53, q54:SS1_54, vocab:null },
   { id:'ss2', title:"쓰기 2", q51:SS2_51, q52:SS2_52, q53:SS2_53, q54:SS2_54, vocab:SS2_VOCAB },
-  { id:'ss3', title:"쓰기 3", q51:SS3_51, q52:SS3_52, q53:SS3_53, vocab:SS3_VOCAB }
+  { id:'ss3', title:"쓰기 3", q51:SS3_51, q52:SS3_52, q53:SS3_53, vocab:SS3_VOCAB },
+  { id:'ss4', title:"쓰기 4", q51:SS4_51, q52:SS4_52, q53:SS4_53, q54:SS4_54, vocab:SS4_VOCAB }
 ];
 function ssSet(){ return SSSETS.find(x=>x.id===SSID) || SSSETS[0]; }
 function ssBlankState(setDef){
@@ -7694,10 +7732,22 @@ function ssChart53LineBarHTML(c){
   </div>
   <div class="ss-cause"><b>${ssEsc(c.causeLabel||'원인')}</b>${c.outlook.map(o=>`· ${ssEsc(o)}`).join('<br>')}</div>`;
 }
+function ssChart53BarForecastHTML(c){
+  const maxBar=Math.max(...c.bar.points.map(p=>p[1]));
+  return `
+  ${c.source?`<p class="hint" style="margin-bottom:10px">· 조사 기관: ${ssEsc(c.source)}</p>`:''}
+  <div class="ss-53box" style="max-width:360px;margin:0 auto 12px">
+    <div class="ss-53box-title">${ssEsc(c.bar.title)} <span class="ss-53unit">${ssEsc(c.bar.unit)}</span></div>
+    ${ssSimpleBarHTML(c.bar.points, maxBar)}
+  </div>
+  <div class="ss-cause"><b>${ssEsc(c.causeLabel||'원인')}</b>${c.outlook.map(o=>`· ${ssEsc(o)}`).join('<br>')}</div>
+  ${c.forecast?`<div class="ss-cause" style="margin-top:8px"><b>예상</b>${c.forecast.map(o=>`· ${ssEsc(o)}`).join('<br>')}</div>`:''}`;
+}
 function ssChart53HTML(){
   const c=ssSet().q53;
   if(c.layout==='petindustry') return ssChart53PetHTML(c);
   if(c.layout==='linebar') return ssChart53LineBarHTML(c);
+  if(c.layout==='barforecast') return ssChart53BarForecastHTML(c);
   return ssChart53HouseholdHTML(c);
 }
 function ssScreen53(){
