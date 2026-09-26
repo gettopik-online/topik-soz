@@ -11281,6 +11281,7 @@ function tmLoadScript(src){
 }
 async function tmLoadRound(n){
   if(TM_LOADED[n]) return;
+  if(!TM_LOADED.dict){ TM_LOADED.dict=true; await tmLoadScript('master/dict.js'); }   // 분석하기 lug'ati
   await Promise.all([tmLoadScript('master/listen-'+n+'.js'), tmLoadScript('master/read-'+n+'.js'),
                      tmLoadScript('master/words-listen-'+n+'.js'), tmLoadScript('master/words-read-'+n+'.js')]);
   TM_LOADED[n]=true;
