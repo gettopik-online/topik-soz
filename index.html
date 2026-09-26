@@ -232,6 +232,11 @@
     border:1px solid var(--line);border-radius:10px;padding:8px 14px;cursor:pointer}
   .pz.on{border-color:var(--accent);color:var(--accent)}
   .pz:disabled{opacity:.7;cursor:default}
+  .fab{position:fixed;right:14px;bottom:16px;z-index:60;display:flex;flex-direction:column;gap:8px}
+  .fab button{font:inherit;font-size:15px;font-weight:700;border:1px solid var(--line);border-radius:999px;
+    padding:11px 16px;background:var(--card);color:inherit;box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer}
+  .fab button.main{background:var(--accent);border-color:var(--accent);color:#fff}
+  @media (max-width:430px){ .fab button{padding:10px 14px;font-size:14px} }
   .wt{cursor:pointer;border-bottom:1.5px dashed var(--accent);}
   .wa-hideans .opt.ok{border-color:var(--line);color:inherit;font-weight:inherit}
   .wa-hideans .wa-ans{display:none}
@@ -719,7 +724,8 @@ function screenName(){
   nm.addEventListener('keydown',e=>{if(e.key==='Enter')go();});
   app.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{DB.current=b.dataset.n;save();screenTypes();});
 }
-function whoBar(level){   // level: 0=tur tanlash, 1=bo'limlar, 2=variantlar/ichkari
+function whoBar(level){
+  if(typeof fabClear==='function') fabClear();   // level: 0=tur tanlash, 1=bo'limlar, 2=variantlar/ichkari
   whoEl.innerHTML=`<span>O'quvchi: <b>${DB.current}</b></span>
     ${level>=1?`<button class="link" id="navtype">듣기 / 읽기</button>`:''}
     ${level>=2?`<button class="link" id="navsec">${typeLabel(TYPE).split(' · ')[0]} bo'limlari</button>`:''}
@@ -10046,6 +10052,15 @@ function waDeepWrap(obj){
   }
   return obj;
 }
+// uzun ekranlarda doim ko'rinib turadigan "orqaga" tugmasi
+function fabClear(){ const f=document.getElementById('fabbar'); if(f) f.remove(); }
+function fabShow(items){          // items: [{label, main, onclick}]
+  fabClear();
+  const d=document.createElement('div'); d.className='fab'; d.id='fabbar';
+  items.forEach(it=>{ const b=document.createElement('button');
+    b.textContent=it.label; if(it.main) b.className='main'; b.onclick=it.onclick; d.appendChild(b); });
+  document.body.appendChild(d);
+}
 let waTipEl=null;
 function waCloseTip(){
   if(waTipEl){ waTipEl.remove(); waTipEl=null; }
@@ -10728,10 +10743,17 @@ function waScreenListen(id){
       <h2>${ssEsc(m.label)} — 분석하기 (대본)</h2>
       <p class="hint">Har qanday koreyscha so'zni bosing, tarjimasi ustida chiqadi.</p>
       <div class="row" style="margin-top:10px"><button class="btn ghost" id="wareadback">분석하기 ro'yxatiga qaytish</button></div>
-    </div>` + groupsHtml;
-  document.getElementById('wareadback').onclick=waScreenHub;
+    </div>` + groupsHtml + waBackCard();
+  const goBack=waScreenHub;
+  document.getElementById('wareadback').onclick=goBack;
+  const bb=document.getElementById('wabackbottom'); if(bb) bb.onclick=goBack;
+  fabShow([{label:'↑', onclick:()=>window.scrollTo({top:0,behavior:'smooth'})},
+           {label:'뒤로', main:true, onclick:goBack}]);
 }
 // WA_TESTS dagi 듣기 testi: savol + 대본 + to'g'ri javob + izoh bitta joyda (통합)
+function waBackCard(){
+  return '<div class="card"><div class="row"><button class="btn ghost" id="wabackbottom">뒤로</button></div></div>';
+}
 function waListenScript(script){
   if(!script) return '';
   return `<div class="scriptbox"><p class="hint" style="margin-bottom:6px">듣기 대본</p>${script.map(([who,line])=>`<div><span class="who">${ssEsc(who)}:</span>${waWrap(line)}</div>`).join('')}</div>`;
@@ -10763,8 +10785,12 @@ function waScreenAnsTest(id, back){
         <button class="btn" id="wahideans">Javoblarni yashirish</button>
         <button class="btn ghost" id="wareadback">${back?'뒤로':"분석하기 ro'yxatiga qaytish"}</button>
       </div>
-    </div><div id="walistenbody">` + groupsHtml + '</div>';
-  document.getElementById('wareadback').onclick=back||waScreenHub;
+    </div><div id="walistenbody">` + groupsHtml + '</div>' + waBackCard();
+  const goBack=back||waScreenHub;
+  document.getElementById('wareadback').onclick=goBack;
+  const bb=document.getElementById('wabackbottom'); if(bb) bb.onclick=goBack;
+  fabShow([{label:'↑', onclick:()=>window.scrollTo({top:0,behavior:'smooth'})},
+           {label:'뒤로', main:true, onclick:goBack}]);
   const hb=document.getElementById('wahideans');
   hb.onclick=()=>{
     const body=document.getElementById('walistenbody');
@@ -10790,8 +10816,12 @@ function waScreenRead(id){
       <h2>${ssEsc(m.label)} — 분석하기</h2>
       <p class="hint">Har qanday koreyscha so'zni bosing, tarjimasi ustida chiqadi.</p>
       <div class="row" style="margin-top:10px"><button class="btn ghost" id="wareadback">분석하기 ro'yxatiga qaytish</button></div>
-    </div>` + groupsHtml;
-  document.getElementById('wareadback').onclick=waScreenHub;
+    </div>` + groupsHtml + waBackCard();
+  const goBack=waScreenHub;
+  document.getElementById('wareadback').onclick=goBack;
+  const bb=document.getElementById('wabackbottom'); if(bb) bb.onclick=goBack;
+  fabShow([{label:'↑', onclick:()=>window.scrollTo({top:0,behavior:'smooth'})},
+           {label:'뒤로', main:true, onclick:goBack}]);
 }
 
 
@@ -11557,6 +11587,11 @@ function renderMockExam(){
     if(confirm(`${total}문항 중 ${done}문항에 답했습니다. 제출하시겠습니까?`)) finishMock();
   };
   wireMockOptions();
+  fabShow([{label:'↑', onclick:()=>window.scrollTo({top:0,behavior:'smooth'})},
+           {label:'나가기', main:true, onclick:()=>{
+             const done=Object.keys(mockState.answers).length;
+             if(confirm('지금 나가면 선택한 '+done+'문항으로 채점됩니다. 나가시겠습니까?')) finishMock();
+           }}]);
   if(m.audio) wireMockAudio();
 }
 /* 듣기: audio to'xtovsiz ketadi — boshqaruv tugmalari yo'q, orqaga qaytarib
