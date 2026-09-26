@@ -10959,6 +10959,7 @@ const WORDTESTS = [
     choose:27, write:20, chooseSec:10, writeSec:25, pass:'ustoz2026' },
 ];
 let WT = WORDTESTS[0];                              // joriy test
+let WT_BACK=null;                                   // testdan qayerga qaytish (TOPIK MASTER uchun)
 function wtBySecId(secId){ return WORDTESTS.find(w=>w.secId===secId); }
 function wtSection(){ return SECTIONS.find(s=>s.id===WT.secId); }
 function wtGame(){ return GAME+'-wt-'+WT.id; }
@@ -10969,7 +10970,7 @@ function wtRec(){ const u=U(); return (u&&u.wt&&u.wt[WT.id])||null; }
 let WTGATES = {};   // {[testId]: {open, until} | null (bog'lanmadi) | undefined}
 async function wtLoadGate(){
   try{
-    const r=await fetch(API+'/top?game='+wtGateGame()+'&cb='+Date.now());
+    const r=await fetch(API+'/top?game='+encodeURIComponent(wtGateGame())+'&cb='+Date.now());
     const d=await r.json();
     const row=(d.rows||[]).find(x=>x.name==='GATE');
     if(!row || !row.ok){ WTGATES[WT.id]={open:false, until:0}; return WTGATES[WT.id]; }
@@ -10997,6 +10998,10 @@ function wtBuild(){
   const pick=pool.slice(0, WT.choose+WT.write);
   return pick.map((w,i)=>{
     if(i<WT.choose){
+      if(WT.mode==='ko2uz'){          // koreyscha beriladi, ma'nosi tanlanadi
+        const others=shuffle(pool.filter(x=>x.uz!==w.uz)).slice(0,3).map(x=>x.uz);
+        return {ko:w.ko, uz:w.uz, type:'choose', mode:'ko2uz', options:shuffle([w.uz,...others])};
+      }
       const others=shuffle(pool.filter(x=>x.ko!==w.ko)).slice(0,3).map(x=>x.ko);
       return {ko:w.ko, uz:w.uz, type:'choose', options:shuffle([w.ko,...others])};
     }
@@ -11037,7 +11042,7 @@ function screenWordTest(testId){
       <div class="row" style="margin-top:12px"><button class="btn ghost" id="back">Orqaga</button></div>
     </div>
     ${wtRankCard()}`;
-  document.getElementById('back').onclick=()=>screenSets();
+  document.getElementById('back').onclick=()=>{ if(WT_BACK){ const b=WT_BACK; WT_BACK=null; b(); } else screenSets(); };
   wireRank(wtGame(), ()=>screenWordTest(WT.id));
   wtRenderGate(!!pend);
   if(WTGATES[WT.id]===undefined) wtLoadGate().then(()=>wtRenderGate(!!pend));
@@ -11094,8 +11099,8 @@ function wtRenderQ(){
       <div class="wtcount"><span>${wtState.i+1} / ${wtState.items.length}</span>
         <span>${q.type==='choose'?'Tanlash':'Yozish'} · ${lim} s</span></div>
       <div class="wtbar" id="wtbar"><i style="width:100%"></i></div>
-      <div class="wtword">${q.uz}</div>
-      <div class="wtsub">${q.type==='choose'?'Koreyschasini tanlang':'Koreyschasini yozing'}</div>
+      <div class="wtword">${q.mode==='ko2uz'?q.ko:q.uz}</div>
+      <div class="wtsub">${q.mode==='ko2uz'?"Ma'nosini tanlang":(q.type==='choose'?'Koreyschasini tanlang':'Koreyschasini yozing')}</div>
       ${q.type==='choose'
         ? `<div class="opts" style="margin-top:14px">${q.options.map((o,oi)=>`<button class="opt" data-o="${oi}">${o}</button>`).join('')}</div>`
         : `<input class="wtinput" id="wtin" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="한국어">
@@ -11125,7 +11130,8 @@ function wtAnswer(val){
   clearInterval(wtState.timerId);
   const q=wtState.items[wtState.i];
   const lim=(q.type==='choose'?WT.chooseSec:WT.writeSec)*1000;
-  const ok = val!=null && norm(String(val))===norm(q.ko);
+  const target = q.mode==='ko2uz' ? q.uz : q.ko;
+  const ok = val!=null && norm(String(val))===norm(target);
   wtState.answers[wtState.i]={given:val==null?'':String(val).trim(), ok};
   wtState.spent += lim - Math.max(0, wtState.qEnd-Date.now());
   wtState.i++;
@@ -11165,7 +11171,7 @@ function wtResult(correct, seconds, n){
       <div class="list" style="margin-top:8px">
         ${items.map((q,i)=>{const a=ans[i]||{};return `<div>
           <span class="k" style="color:${a.ok?'var(--ok)':'var(--no)'}">${q.ko}</span>
-          <span class="v">${q.uz}${a.ok?'':` · yozgan: <b>${a.given||'—'}</b>`}</span></div>`;}).join('')}
+          <span class="v">${q.uz}${a.ok?'':` · ${q.mode==='ko2uz'?'tanlagan':'yozgan'}: <b>${a.given||'—'}</b>`}</span></div>`;}).join('')}
       </div>
     </div>
     <div class="card"><div class="row"><button class="btn" id="wtback">Ortga</button></div></div>`;
@@ -11212,8 +11218,10 @@ function screenTeacher(){
   document.getElementById('tgo').onclick=go;
   document.getElementById('tpass').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
 }
-function screenTeacherList(){
+async function screenTeacherList(){
   whoEl.innerHTML='';
+  app.innerHTML='<div class="card"><h2>Ustoz paneli</h2><p class="hint">Testlar ro\'yxati yuklanmoqda…</p></div>';
+  for(let n=1;n<=10;n++){ try{ await tmLoadWords(n); }catch(e){} }
   app.innerHTML=`<div class="card">
       <h2>Ustoz paneli</h2>
       <p class="hint">Boshqariladigan testni tanlang</p>
@@ -11303,6 +11311,11 @@ function MASTER_WORDS(o){
       for(const f of [st+'한', st+'해', st+'하는', st+'했다', st+'합니다']) if(!WA_DICT[f]) WA_DICT[f]=[base, uz]; }
   });
   SECTIONS.push(sec);
+  // shu to'plam uchun 50 savollik test (ustoz ochganda ishlaydi)
+  if(!WORDTESTS.some(w=>w.secId===sec.id)){
+    WORDTESTS.push({ id:'tw-'+o.type+'-'+String(o.id).split('-').pop(), secId:sec.id, title:o.title+" — 50 so'z testi",
+      choose:50, write:0, chooseSec:5, writeSec:5, mode:'ko2uz', pass:'ustoz2026' });
+  }
   const u=U(); if(u){ if(!u.stats) u.stats={}; sec.sets.forEach(s=>{ if(!u.stats[s.uid]) u.stats[s.uid]={}; }); save(); }
 }
 function MASTER_EXPLAIN(o){
@@ -11320,11 +11333,39 @@ function MASTER_EXPLAIN(o){
   });
 }
 function tmWordsSec(n, type){ return SECTIONS.find(s=>s.id==='tmw-'+type+'-'+n); }
+// 단어 외우기 ichidagi ikkita tugma: 연습 (raundlar) va 시험 (50 so'z testi)
+function screenMasterWords(n, type){
+  whoBar(0);
+  const sec=tmWordsSec(n, type); if(!sec) return;
+  const s=sec.sets[0], st=setStat(s);
+  const wt=WORDTESTS.find(w=>w.secId===sec.id);
+  const done=wt?(function(){ const prev=WT; WT=wt; const c=wtAttemptCount(); WT=prev; return c; })():0;
+  app.innerHTML=
+    '<div class="card">'+
+      '<h2>제'+n+'회 '+type+" — 단어 외우기</h2>"+
+      '<p class="hint">'+s.words.length+" ta so'z. Avval mashq qiling, keyin testda sinab ko'ring.</p>"+
+      '<div class="sets" style="margin-top:12px">'+
+        '<button class="set" data-go="practice"><div class="n" style="font-size:22px">연습하기</div>'+
+          '<div class="m">'+rounds(s).length+" raund · har raundda 10 ta so'z · 4 bosqich"+
+          (st.done?' · '+st.ok+'/'+st.all+" to'g'ri":'')+'</div></button>'+
+        (wt?('<button class="set" data-go="exam"><div class="n" style="font-size:22px">시험 보기</div>'+
+          '<div class="m">50 ta savol · har biriga 5 soniya · ustoz ruxsati kerak'+
+          (done?' · '+done+' marta ishlangan':'')+'</div></button>')
+          :'<button class="set" disabled style="opacity:.45"><div class="n" style="font-size:22px">시험 보기</div><div class="m">준비 중</div></button>')+
+      '</div>'+
+      '<div class="row"><button class="btn ghost" id="back">뒤로</button></div>'+
+    '</div>';
+  const pr=app.querySelector('[data-go="practice"]'); if(pr) pr.onclick=()=>tmOpenWords(n, type);
+  const ex=app.querySelector('[data-go="exam"]');
+  if(ex) ex.onclick=()=>{ TYPE=sec.type; SEC=sec.id; state.set=s;
+    WT_BACK=()=>screenMasterWords(n, type); screenWordTest(wt.id); };
+  document.getElementById('back').onclick=()=>screenMasterSkill(n, type);
+}
 function tmOpenWords(n, type){
   const sec=tmWordsSec(n,type); if(!sec) return;
   const u=U(); if(u && !u.stats[sec.sets[0].uid]){ u.stats[sec.sets[0].uid]={}; save(); }
   TYPE=sec.type; SEC=sec.id; state.set=sec.sets[0];
-  TM_WORDBACK=()=>screenMasterSkill(n, type);
+  TM_WORDBACK=()=>screenMasterWords(n, type);
   screenRounds();
 }
 const TM_LOADED = {};
@@ -11347,6 +11388,9 @@ function tmLoadScript(src){
     s.onload=()=>res(true); s.onerror=()=>res(false);
     document.head.appendChild(s);
   });
+}
+async function tmLoadWords(n){
+  await Promise.all([tmLoadScript('master/words-listen-'+n+'.js'), tmLoadScript('master/words-read-'+n+'.js')]);
 }
 async function tmLoadRound(n){
   if(TM_LOADED[n]) return;
@@ -11428,7 +11472,7 @@ async function screenMasterSkill(n, type){
       '<div class="row"><button class="btn ghost" id="back">뒤로</button></div>'+
     '</div>';
   const t=app.querySelector('[data-go="test"]'); if(t) t.onclick=()=>screenMockIntro(m.id);
-  const w=app.querySelector('[data-go="words"]'); if(w) w.onclick=()=>tmOpenWords(n, type);
+  const w=app.querySelector('[data-go="words"]'); if(w) w.onclick=()=>screenMasterWords(n, type);
   const an=app.querySelector('[data-go="anal"]'); if(an) an.onclick=()=>waScreenAnsTest(m.id, ()=>screenMasterSkill(n, type));
   document.getElementById('back').onclick=()=>screenMasterRound(n);
 }
