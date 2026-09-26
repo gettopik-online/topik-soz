@@ -11275,6 +11275,20 @@ function MASTER_WORDS(o){
   SECTIONS.push(sec);
   const u=U(); if(u){ if(!u.stats) u.stats={}; sec.sets.forEach(s=>{ if(!u.stats[s.uid]) u.stats[s.uid]={}; }); save(); }
 }
+function MASTER_EXPLAIN(o){
+  const m=MOCKS.find(x=>x.id===o.id); if(!m) return;
+  const S=o.scripts||{}, E=o.explains||{};
+  m.groups.forEach(g=>{
+    const nums=g.questions.map(q=>q.num);
+    const key=nums.length>1 ? nums[0]+'-'+nums[nums.length-1] : String(nums[0]);
+    if(S[key]) g.script=S[key];
+    g.questions.forEach(q=>{
+      const k=String(q.num);
+      if(S[k]) q.script=S[k];
+      if(E[k]) q.explain=E[k];
+    });
+  });
+}
 function tmWordsSec(n, type){ return SECTIONS.find(s=>s.id==='tmw-'+type+'-'+n); }
 function tmOpenWords(n, type){
   const sec=tmWordsSec(n,type); if(!sec) return;
@@ -11288,7 +11302,7 @@ function MASTER_ADD(t){ if(!MOCKS.some(m=>m.id===t.id)) MOCKS.push(t); }
 // WA_TESTS (분석하기) ichidagi tayyor testdan imtihon yasaydi
 function MASTER_FROM_WA(o){
   const w=WA_TESTS.find(x=>x.id===o.waId); if(!w) return;
-  const groups=w.groups.map(g=>({ instruction:g.instruction, shared:g.shared,
+  const groups=w.groups.map(g=>({ instruction:g.instruction, shared:g.shared, script:g.script,
     questions:g.questions.map((q,i)=>{
       const nq={...q};
       if(o.answers) nq.correct=+o.answers[q.num-1]-1;
@@ -11309,6 +11323,7 @@ async function tmLoadRound(n){
   if(!TM_LOADED.dict){ TM_LOADED.dict=true; await tmLoadScript('master/dict.js'); }   // 분석하기 lug'ati
   await Promise.all([tmLoadScript('master/listen-'+n+'.js'), tmLoadScript('master/read-'+n+'.js'),
                      tmLoadScript('master/words-listen-'+n+'.js'), tmLoadScript('master/words-read-'+n+'.js')]);
+  await Promise.all([tmLoadScript('master/exp-listen-'+n+'.js'), tmLoadScript('master/exp-read-'+n+'.js')]);
   TM_LOADED[n]=true;
 }
 function screenMasterHub(){
