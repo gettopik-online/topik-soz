@@ -10713,10 +10713,11 @@ function waListenScript(script){
 }
 function waHasAnswers(m){ return !!m && m.groups.some(g=>g.questions.some(q=>typeof q.correct==='number')); }
 // WA_TESTS testi: savol + (대본) + to'g'ri javob + izoh bitta joyda (통합)
-function waScreenAnsTest(id){
+function waScreenAnsTest(id, back){
   whoBar(1);
-  const m = WA_TESTS.find(x=>x.id===id);
-  const isListen = m.type==='listen';
+  const m = WA_TESTS.find(x=>x.id===id) || MOCKS.find(x=>x.id===id);
+  const isListen = m.type==='listen' || m.testType==='듣기';
+  const hasExp = m.groups.some(g=>g.questions.some(q=>q.explain));
   const groupsHtml = m.groups.map(g=>`<div class="qcard mockgroup"><p class="ins">${g.instruction}</p>
     ${g.shared?renderMockContent(waDeepWrap(g.shared)):''}
     ${waListenScript(g.script)}
@@ -10731,14 +10732,14 @@ function waScreenAnsTest(id){
     </div>`).join('')}
   </div>`).join('');
   app.innerHTML = `<div class="card">
-      <h2>${ssEsc(m.label)} — 분석하기 (${isListen?'대본 + 정답':'정답 + 해설'})</h2>
+      <h2>${ssEsc(m.label)} — 분석하기 (${hasExp?(isListen?'대본 + 정답':'정답 + 해설'):'정답'})</h2>
       <p class="hint">Har qanday koreyscha so'zni bosing, tarjimasi ustida chiqadi. O'zingizni tekshirish uchun javoblarni yashirib qo'yishingiz mumkin.</p>
       <div class="row" style="margin-top:10px">
         <button class="btn" id="wahideans">Javoblarni yashirish</button>
-        <button class="btn ghost" id="wareadback">분석하기 ro'yxatiga qaytish</button>
+        <button class="btn ghost" id="wareadback">${back?'뒤로':"분석하기 ro'yxatiga qaytish"}</button>
       </div>
     </div><div id="walistenbody">` + groupsHtml + '</div>';
-  document.getElementById('wareadback').onclick=waScreenHub;
+  document.getElementById('wareadback').onclick=back||waScreenHub;
   const hb=document.getElementById('wahideans');
   hb.onclick=()=>{
     const body=document.getElementById('walistenbody');
@@ -11238,6 +11239,14 @@ function MASTER_WORDS(o){
   const sec={ id:o.id, type:o.type, label:o.label, hidden:true, tm:true,
     sets:[{ id:'w', title:o.title, sub:o.sub, words:o.words }] };
   sec.sets.forEach(s=>{ s.secId=sec.id; s.uid=sec.id+'-'+s.id; ALLSETS.push(s); });
+  // so'zlar lug'atga ham qo'shiladi — 분석하기 da bosilganda tarjimasi chiqsin
+  o.words.forEach(([ko,uz])=>{
+    const base=ko.replace(/\(([^)]*)\)/g,'$1');          // "진행(하다)" -> "진행하다"
+    const bare=ko.replace(/\([^)]*\)/g,'').trim();        // "진행(하다)" -> "진행"
+    for(const k of [ko, base, bare]) if(k && !WA_DICT[k]) WA_DICT[k]=[bare||ko, uz];
+    if(base.endsWith('하다')){ const st=base.slice(0,-2);
+      for(const f of [st+'한', st+'해', st+'하는', st+'했다', st+'합니다']) if(!WA_DICT[f]) WA_DICT[f]=[base, uz]; }
+  });
   SECTIONS.push(sec);
   const u=U(); if(u){ if(!u.stats) u.stats={}; sec.sets.forEach(s=>{ if(!u.stats[s.uid]) u.stats[s.uid]={}; }); save(); }
 }
@@ -11328,6 +11337,7 @@ async function screenMasterSkill(n, type){
   const round='제'+n+'회';
   await tmLoadRound(n);
   const m=mockOf(round, type, 'master');
+  const hasExp=!!m && m.groups.some(g=>g.questions.some(q=>q.explain));
   const sec=tmWordsSec(n, type);
   let wordInfo='준비 중';
   if(sec){ const s=sec.sets[0], st=setStat(s);
@@ -11342,11 +11352,13 @@ async function screenMasterSkill(n, type){
       '<div class="sets" style="margin-top:12px">'+
         btn('test','시험 보기', m?(mockTotalCount(m)+'문항 · '+Math.floor(m.durationSec/60)+'분 · '+(mockAttemptCount(m.id)?mockAttemptCount(m.id)+'번 응시함':'아직 응시하지 않음')):'', !!m)+
         btn('words','단어 외우기', wordInfo, !!sec)+
+        btn('anal','분석하기', m?(hasExp?"대본/해설 + 정답 · so'zni bosing":"정답 · so'zni bosing, tarjimasi chiqadi"):'', !!m)+
       '</div>'+
       '<div class="row"><button class="btn ghost" id="back">뒤로</button></div>'+
     '</div>';
   const t=app.querySelector('[data-go="test"]'); if(t) t.onclick=()=>screenMockIntro(m.id);
   const w=app.querySelector('[data-go="words"]'); if(w) w.onclick=()=>tmOpenWords(n, type);
+  const an=app.querySelector('[data-go="anal"]'); if(an) an.onclick=()=>waScreenAnsTest(m.id, ()=>screenMasterSkill(n, type));
   document.getElementById('back').onclick=()=>screenMasterRound(n);
 }
 
