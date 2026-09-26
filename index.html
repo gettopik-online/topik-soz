@@ -94,6 +94,137 @@
   @media (max-width:520px){ .ko{font-size:34px} .big-uz{font-size:26px} h1{font-size:24px} }
 
   /* ============ 분석하기 (so'zma-so'z tarjima) ============ */
+  /* TOPIK MASTER: bosma testlardan olingan bloklar (raw HTML) uchun uslublar */
+  .tmraw{word-break:keep-all;line-height:1.75;font-size:15px}
+  .tmraw .stem{margin: 0 0 4px 0;}
+  .tmraw .box{word-break: normal;
+    border: 1.2px solid #cbd5e1; border-radius: 10px; background: #f8fafc;
+    padding: 10px 14px; margin: 4px 0 8px 0; line-height: 1.85; text-align: justify;}
+  .tmraw .box p{margin: 0; text-indent: 1em;}
+  .tmraw .box .src{text-align: right; text-indent: 0; margin-top: 4px; color: #475569; font-size: 13.1px;}
+  .tmraw .box.list p{text-indent: 0;}
+  .tmraw .box.head{padding: 6px 14px; background: #fff; border-color: #94a3b8; font-weight: 600;}
+  .tmraw .bogi{border: 1.2px solid #94a3b8; border-radius: 10px; padding: 12px 14px 8px; margin: 8px 0; position: relative; background: #fff;}
+  .tmraw .bogi .lab{position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
+    background: #fff; padding: 0 10px; color: #1e3a8a; font-weight: 700; letter-spacing: 6px; font-size: 13.1px;}
+  .tmraw .bogi p{margin: 0;}
+  .tmraw u{text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1.2px;}
+  .tmraw .blank{letter-spacing: 2px;}
+  .tmraw .mark{color: #b45309; font-weight: 700; padding: 0 1px; white-space: nowrap;}
+  .tmraw .ad{border-radius: 14px; margin: 4px 0 10px 0; text-align: center; break-inside: avoid;}
+  .tmraw .ad5{background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #dbeafe 100%);
+    border: 2px solid #7dd3fc; padding: 16px 18px; position: relative; overflow: hidden;}
+  .tmraw .ad5:before{content: ""; position: absolute; right: -30px; top: -30px; width: 130px; height: 130px;
+    border-radius: 50%; background: radial-gradient(circle, rgba(56,189,248,.35), transparent 70%);}
+  .tmraw .ad5:after{content: ""; position: absolute; left: -20px; bottom: -40px; width: 120px; height: 120px;
+    border-radius: 50%; background: radial-gradient(circle, rgba(96,165,250,.3), transparent 70%);}
+  .tmraw .ad5 .l1{color: #0369a1; font-weight: 600; font-size: 14.4px;}
+  .tmraw .ad5 .l2{color: #0c4a6e; font-weight: 500; font-size: 13.8px;}
+  .tmraw .ad5 .l3{color: #1d4ed8; font-weight: 800; font-size: 18.1px; margin-top: 4px;}
+  .tmraw .ad5 .ico{position: absolute; left: 22px; top: 50%; transform: translateY(-50%); font-size: 37.5px; opacity: .85;}
+  .tmraw .ad6{background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+    border: 2px dashed #fb923c; padding: 14px 18px; position: relative;}
+  .tmraw .ad6 .l1{color: #9a3412; font-weight: 600; font-size: 14.4px;}
+  .tmraw .ad6 .l2{color: #dc2626; font-weight: 900; font-size: 21.3px; letter-spacing: .5px;}
+  .tmraw .ad6 .ico{position: absolute; left: 22px; top: 50%; transform: translateY(-50%); font-size: 37.5px;}
+  .tmraw .ad7{background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
+    border: 2px dotted #f59e0b; padding: 14px 18px; position: relative;}
+  .tmraw .ad7 .l1{color: #78350f; font-weight: 700; font-size: 15.6px;}
+  .tmraw .ad7 .l2{color: #92400e; font-weight: 500; font-size: 14.4px;}
+  .tmraw .ad7 .ico{position: absolute; left: 22px; top: 50%; transform: translateY(-50%); font-size: 37.5px;}
+  .tmraw .ad8{background: #fff; border: 1.5px solid #d1d5db; border-radius: 10px; padding: 0; text-align: left; overflow: hidden;}
+  .tmraw .ad8 .bar{background: linear-gradient(90deg, #e5e7eb, #f3f4f6); height: 12px; border-bottom: 1px solid #d1d5db; display: flex; gap: 5px; padding: 3px 8px;}
+  .tmraw .ad8 .bar i{width: 6px; height: 6px; border-radius: 50%; display: block;}
+  .tmraw .ad8 .row{display: grid; grid-template-columns: 120px 1fr; gap: 14px; padding: 12px 18px 12px; align-items: center;}
+  .tmraw .ad8 .stars{color: #f59e0b; font-size: 16.3px; letter-spacing: 1px; line-height: 1.2; text-align: center;}
+  .tmraw .ad8 .sat{text-align: center; font-weight: 700; color: #16a34a; font-size: 13.1px; background: #dcfce7; border-radius: 999px; padding: 1px 10px; display: inline-block; margin-top: 4px;}
+  .tmraw .ad8 .txt{color: #1f2937; line-height: 1.7; border-left: 3px solid #a7f3d0; padding-left: 14px;}
+  .tmraw .poster{border-radius: 14px; overflow: hidden; page-break-inside: avoid; margin: 4px 0 10px 0; border: 2px solid #c4b5fd; background: #fff; break-inside: avoid;
+    box-shadow: 0 3px 10px rgba(124,58,237,.12);}
+  .tmraw .poster .ph{background: linear-gradient(120deg, #4c1d95 0%, #7c3aed 55%, #db2777 100%); color: #fff; text-align: center; padding: 12px 16px;}
+  .tmraw .poster .ph .sub{font-size: 11.9px; letter-spacing: 3px; opacity: .85; font-weight: 500;}
+  .tmraw .poster .ph .ttl{font-size: 21.3px; font-weight: 800; letter-spacing: 1px;}
+  .tmraw .poster .pbody{padding: 10px 22px 12px; background: linear-gradient(180deg, #faf5ff, #fff);}
+  .tmraw .poster .pbody ul{margin: 0; padding: 0; list-style: none;}
+  .tmraw .poster .pbody li{display: grid; grid-template-columns: 118px 1fr; gap: 8px; padding: 2px 0;}
+  .tmraw .poster .pbody li b{white-space: nowrap;}
+  .tmraw .poster .pbody li b{color: #6d28d9;}
+  .tmraw .poster .pbody li b:before{content: "■"; color: #db2777; font-size: 8.8px; margin-right: 6px; vertical-align: middle;}
+  .tmraw .chart{border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 10px 14px 6px; margin: 4px 0 10px 0; background: #fff; break-inside: avoid;}
+  .tmraw .chart .ct{text-align: center; font-weight: 800; color: #0f766e; background: #ccfbf1; border-radius: 8px; padding: 5px; margin: 0 0 6px; font-size: 15px;}
+  .tmraw .chart svg{width: 100%; height: auto; display: block;}
+  .tmraw .adx{border-radius:14px; padding:16px 20px; text-align:center; border:2px solid var(--b); background:linear-gradient(135deg,var(--c1),var(--c2));}
+  .tmraw .adx.dash{border-style:dashed;}
+  .tmraw .adx.dot{border-style:dotted; border-width:3px;}
+  .tmraw .adx .l1{color:var(--t1); font-weight:800; font-size:18.1px; line-height:1.55;}
+  .tmraw .adx .l2{color:var(--t2); font-weight:600; font-size:14.4px; margin-top:4px; line-height:1.65;}
+  .tmraw .adx .l3{color:var(--t1); font-weight:900; font-size:20px; margin-top:4px;}
+  .tmraw .adx.left{text-align:left;}
+  .tmraw .adx ul{margin:0; padding:0 0 0 4px; list-style:none; text-align:left; display:inline-block;}
+  .tmraw .adx li{padding:2px 0 2px 14px; position:relative; color:var(--t2); font-weight:600; line-height:1.6;}
+  .tmraw .adx li:before{content:"•"; position:absolute; left:0; color:var(--t1); font-weight:900;}
+  .tmraw .p1{--c1:#e0f2fe;--c2:#dbeafe;--b:#60a5fa;--t1:#1e3a8a;--t2:#1d4ed8}
+  .tmraw .p2{--c1:#fdf2f8;--c2:#fae8ff;--b:#f9a8d4;--t1:#9d174d;--t2:#831843}
+  .tmraw .p3{--c1:#ecfdf5;--c2:#d1fae5;--b:#34d399;--t1:#065f46;--t2:#047857}
+  .tmraw .p4{--c1:#fff7ed;--c2:#ffedd5;--b:#fb923c;--t1:#9a3412;--t2:#c2410c}
+  .tmraw .p5{--c1:#fefce8;--c2:#fef3c7;--b:#f59e0b;--t1:#78350f;--t2:#92400e}
+  .tmraw .p6{--c1:#f5f3ff;--c2:#ede9fe;--b:#a78bfa;--t1:#5b21b6;--t2:#6d28d9}
+  .tmraw .p7{--c1:#f0fdfa;--c2:#ccfbf1;--b:#2dd4bf;--t1:#115e59;--t2:#0f766e}
+  .tmraw .p8{--c1:#fef2f2;--c2:#fee2e2;--b:#f87171;--t1:#991b1b;--t2:#b91c1c}
+  .tmraw .ntc{border-radius:14px; overflow:hidden; margin:4px 0 10px 0; border:2px solid var(--b); background:#fff; box-shadow:0 3px 10px rgba(0,0,0,.08);}
+  .tmraw .ntc .ph{background:linear-gradient(120deg,var(--h1),var(--h2)); color:#fff; text-align:center; padding:11px 16px;}
+  .tmraw .ntc .ph .ttl{font-size:20.6px; font-weight:800; letter-spacing:.5px; line-height:1.4;}
+  .tmraw .ntc .ph .sub{font-size:13.1px; font-weight:600; opacity:.92; margin-top:2px;}
+  .tmraw .ntc .pbody{padding:10px 22px 12px; background:linear-gradient(180deg,var(--c1),#fff);}
+  .tmraw .ntc ul{margin:0; padding:0; list-style:none;}
+  .tmraw .ntc li{display:grid; grid-template-columns:var(--kw,112px) 1fr; gap:8px; padding:2px 0;}
+  .tmraw .ntc li b{color:var(--t1); white-space:nowrap;}
+  .tmraw .ntc li b:before{content:"■"; color:var(--h2); font-size:8.8px; margin-right:6px; vertical-align:middle;}
+  .tmraw .ntc li.full{display:block;}
+  .tmraw .ntc li.full:before{content:none}
+  .tmraw .ntc li.full b:after{content:""}
+  .tmraw .ntc .note{margin-top:6px; color:#475569; font-size:12.9px;}
+  .tmraw .n1{--h1:#1e3a8a;--h2:#3b82f6;--b:#93c5fd;--c1:#eff6ff;--t1:#1d4ed8}
+  .tmraw .n2{--h1:#4c1d95;--h2:#db2777;--b:#c4b5fd;--c1:#faf5ff;--t1:#6d28d9}
+  .tmraw .n3{--h1:#14532d;--h2:#65a30d;--b:#86efac;--c1:#f0fdf4;--t1:#15803d}
+  .tmraw .n4{--h1:#9a3412;--h2:#f59e0b;--b:#fdba74;--c1:#fff7ed;--t1:#c2410c}
+  .tmraw .n5{--h1:#134e4a;--h2:#06b6d4;--b:#5eead4;--c1:#f0fdfa;--t1:#0f766e}
+  .tmraw .n6{--h1:#881337;--h2:#f43f5e;--b:#fda4af;--c1:#fff1f2;--t1:#be123c}
+  .tmraw table.tb{width:100%; border-collapse:collapse; font-size:13.1px; margin:2px 0;}
+  .tmraw table.tb th{background:var(--c1); color:var(--t1);}
+  .tmraw table.tb th, .tmraw table.tb td{border:1px solid #cbd5e1; padding:4px 6px; text-align:center;}
+  .tmraw .adB{background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 55%, #fae8ff 100%); border: 2px solid #f9a8d4; padding: 16px 18px;}
+  .tmraw .adB .l1{color: #9d174d; font-weight: 900; font-size: 21.3px; letter-spacing: .5px;}
+  .tmraw .adB .l2{color: #831843; font-weight: 500; font-size: 13.8px; margin-top: 2px;}
+  .tmraw .adL{background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border: 2px solid #34d399; padding: 16px 18px;}
+  .tmraw .adL .l1{color: #065f46; font-weight: 800; font-size: 18.8px;}
+  .tmraw .adL .l2{color: #047857; font-weight: 600; font-size: 13.8px; margin-top: 4px;}
+  .tmraw .adE{background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 50%, #cffafe 100%); border: 2px solid #60a5fa; padding: 16px 18px;}
+  .tmraw .adE .l1{color: #1e3a8a; font-weight: 800; font-size: 18.8px;}
+  .tmraw .adE .l2{color: #1d4ed8; font-weight: 600; font-size: 13.8px; margin-top: 6px; line-height: 1.7;}
+  .tmraw .adH{background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border: 2px solid #fbbf24; padding: 12px 20px 12px; text-align: left;}
+  .tmraw .adH .date{text-align: center; font-weight: 800; color: #92400e; margin-bottom: 6px; font-size: 14.4px;}
+  .tmraw .adH ul{margin: 0; padding: 0; list-style: none;}
+  .tmraw .adH li{padding: 3px 0 3px 12px; border-left: 3px solid #f59e0b; margin: 5px 0; line-height: 1.55;}
+  .tmraw .adH li b{color: #b45309;}
+  .tmraw .adH li span{color: #374151; font-size: 13.1px;}
+  .tmraw .expo{border-radius: 14px; overflow: hidden; margin: 4px 0 10px 0; border: 2px solid #86efac; background: #fff; box-shadow: 0 3px 10px rgba(22,163,74,.12);}
+  .tmraw .expo .ph{background: linear-gradient(120deg, #14532d 0%, #16a34a 60%, #84cc16 100%); color: #fff; text-align: center; padding: 12px 16px;}
+  .tmraw .expo .ph .ttl{font-size: 21.3px; font-weight: 800; letter-spacing: 1px;}
+  .tmraw .expo .pbody{padding: 10px 22px 12px; background: linear-gradient(180deg, #f0fdf4, #fff);}
+  .tmraw .expo ul{margin: 0; padding: 0; list-style: none;}
+  .tmraw .expo li{display: grid; grid-template-columns: 104px 1fr; gap: 8px; padding: 2px 0;}
+  .tmraw .expo li b{color: #15803d; white-space: nowrap;}
+  .tmraw .expo li b:before{content: "■"; color: #65a30d; font-size: 8.8px; margin-right: 6px; vertical-align: middle;}
+  .tmraw .chart .ct.b{color: #1e40af; background: #dbeafe;}
+  .tmraw .pics{display:grid; grid-template-columns:1fr 1fr; gap:12px 14px; margin:4px 0;}
+  .tmraw .pic{position:relative;}
+  .tmraw .pic .n{position:absolute; left:0; top:0; z-index:2; background:#2563eb; color:#fff; font-weight:800;
+    width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:14px; line-height:1; border-radius:0 0 8px 0;}
+  .tmraw .pic .chart{margin:0; padding:8px 8px 4px;}
+  .tmraw .pic .chart .ct{padding-left:34px}
+  .tmraw .pic .chart svg{min-height:150px}
+  @media (max-width:760px){ .tmraw .pics{grid-template-columns:1fr} }
   .wt{cursor:pointer;border-bottom:1.5px dashed var(--accent);}
   .wa-hideans .opt.ok{border-color:var(--line);color:inherit;font-weight:inherit}
   .wa-hideans .wa-ans{display:none}
@@ -643,6 +774,16 @@ function screenTypes(){
       </div>
     </div>
     <div class="card">
+      <h2>TOPIK MASTER</h2>
+      <p class="hint">실전 모의고사 10회 — 제1회부터 제10회까지 듣기 · 쓰기 · 읽기</p>
+      <div class="sets" style="margin-top:12px">
+        <button class="set" data-tmhub="1">
+          <div class="n" style="font-size:24px">TOPIK MASTER</div>
+          <div class="m">10회 · 듣기 / 쓰기 / 읽기</div>
+        </button>
+      </div>
+    </div>
+    <div class="card">
       <h2>분석하기</h2>
       <p class="hint">Matnlarni so'zma-so'z tarjima bilan o'rganing — so'zni bosing, tarjimasi chiqadi.</p>
       <div class="sets" style="margin-top:12px">
@@ -657,6 +798,7 @@ function screenTypes(){
   const ssBtn=document.querySelector('[data-ss]'); if(ssBtn) ssBtn.onclick=ssScreenHub;
   app.querySelectorAll('[data-mr]').forEach(b=>b.onclick=()=>screenMockRound(b.dataset.mr));
   const waBtn=document.querySelector('[data-wahub]'); if(waBtn) waBtn.onclick=waScreenHub;
+  const tmBtn=document.querySelector('[data-tmhub]'); if(tmBtn) tmBtn.onclick=screenMasterHub;
   wireMockNote(screenTypes);
   wireRank(gTotal(), screenTypes);
 }
@@ -10630,6 +10772,11 @@ function mockNextAttempt(mockId){
 async function mockRecoverPending(){
   const u=U(); if(!u || !u.mockPending) return;
   const p=u.mockPending;
+  // TOPIK MASTER testi bo'lsa ma'lumoti hali yuklanmagan — avval yuklaymiz
+  if(String(p.mockId).indexOf('tm-')===0 && !MOCKS.some(x=>x.id===p.mockId)){
+    const n=tmRoundNo(p.mockId.split('-').pop());
+    if(n) { try{ await tmLoadRound(n); }catch(e){} }
+  }
   const m=MOCKS.find(x=>x.id===p.mockId);
   const answered=m?Object.keys(p.answers||{}).length:0;
   if(!m || !answered){ mockClearPending(); return; }   // bitta ham javob yo'q — hisobga olinmaydi
@@ -11012,10 +11159,87 @@ function screenTeacherPanel(){
 const MOCKTYPES = ['듣기','쓰기','읽기'];              // har raund ichidagi tartib
 function mockRounds(){
   const out=[];
-  MOCKS.forEach(m=>{ if(out.indexOf(m.round)<0) out.push(m.round); });
+  MOCKS.forEach(m=>{ if((m.coll||'mock')==='mock' && out.indexOf(m.round)<0) out.push(m.round); });
   return out;
 }
-function mockOf(round, type){ return MOCKS.find(m=>m.round===round && m.testType===type); }
+
+/* ============ TOPIK MASTER (실전 모의고사 10회) ============
+   Testlar alohida master/*.js fayllarida — bo'lim ochilganda yuklanadi.
+   Yuklangach MOCKS ro'yxatiga coll:'master' bilan qo'shiladi va
+   mavjud MOCK dvigateli (taymer, baholash, ko'rib chiqish) ishlatiladi. */
+const TM_ROUNDS = [1,2,3,4,5,6,7,8,9,10];
+function tmRoundNo(r){ return parseInt(String(r).replace(/[^0-9]/g,''),10); }
+const TM_LOADED = {};
+function MASTER_ADD(t){ if(!MOCKS.some(m=>m.id===t.id)) MOCKS.push(t); }
+// WA_TESTS (분석하기) ichidagi tayyor testdan imtihon yasaydi
+function MASTER_FROM_WA(o){
+  const w=WA_TESTS.find(x=>x.id===o.waId); if(!w) return;
+  const groups=w.groups.map(g=>({ instruction:g.instruction, shared:g.shared,
+    questions:g.questions.map((q,i)=>{
+      const nq={...q};
+      if(o.answers) nq.correct=+o.answers[q.num-1]-1;
+      return nq;
+    })}));
+  MASTER_ADD({ id:o.id, coll:'master', round:o.round, testType:o.testType,
+    label:o.label, durationSec:o.durationSec, note:o.note, groups });
+}
+function tmLoadScript(src){
+  return new Promise(res=>{
+    const s=document.createElement('script'); s.src=src;
+    s.onload=()=>res(true); s.onerror=()=>res(false);
+    document.head.appendChild(s);
+  });
+}
+async function tmLoadRound(n){
+  if(TM_LOADED[n]) return;
+  await Promise.all([tmLoadScript('master/listen-'+n+'.js'), tmLoadScript('master/read-'+n+'.js')]);
+  TM_LOADED[n]=true;
+}
+function screenMasterHub(){
+  whoBar(0);
+  app.innerHTML=`
+    <div class="card">
+      <h2>TOPIK MASTER</h2>
+      <p class="hint">실전 모의고사 10회 · 듣기 / 쓰기 / 읽기. 회차를 선택하세요.</p>
+      <div class="sets" style="margin-top:12px">
+        ${TM_ROUNDS.map(n=>`<button class="set" data-tm="${n}">
+          <div class="n" style="font-size:24px">제${n}회</div>
+          <div class="m">듣기 · 읽기 · 쓰기</div>
+        </button>`).join('')}
+      </div>
+      <div class="row"><button class="btn ghost" id="back">뒤로</button></div>
+    </div>`;
+  app.querySelectorAll('[data-tm]').forEach(b=>b.onclick=()=>screenMasterRound(+b.dataset.tm));
+  document.getElementById('back').onclick=screenTypes;
+}
+async function screenMasterRound(n){
+  whoBar(0);
+  const round='제'+n+'회';
+  app.innerHTML=`<div class="card"><h2>TOPIK MASTER ${round}</h2><p class="hint">불러오는 중…</p></div>`;
+  await tmLoadRound(n);
+  const card=t=>{
+    const m=mockOf(round,t,'master');
+    if(!m) return `<button class="set" disabled style="opacity:.45">
+      <div class="n" style="font-size:22px">${t}</div>
+      <div class="m">준비 중</div></button>`;
+    const c=mockAttemptCount(m.id);
+    return `<button class="set" data-m="${m.id}">
+      <div class="n" style="font-size:22px">${t}</div>
+      <div class="m">${m.note?m.note+' · ':''}${mockTotalCount(m)}문항 · ${Math.floor(m.durationSec/60)}분</div>
+      <div class="m" style="color:${c?'var(--accent)':'var(--muted)'}">${c?c+'번 응시함':'아직 응시하지 않음'}</div>
+    </button>`;
+  };
+  app.innerHTML=`
+    <div class="card">
+      <h2>TOPIK MASTER ${round}</h2>
+      <p class="hint">영역을 선택하세요. 시작하면 타이머가 작동합니다.</p>
+      <div class="sets" style="margin-top:12px">${MOCKTYPES.map(card).join('')}</div>
+      <div class="row"><button class="btn ghost" id="back">뒤로</button></div>
+    </div>`;
+  app.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>screenMockIntro(b.dataset.m));
+  document.getElementById('back').onclick=screenMasterHub;
+}
+function mockOf(round, type, coll){ return MOCKS.find(m=>m.round===round && m.testType===type && (m.coll||'mock')===(coll||'mock')); }
 
 function screenMockHub(){
   whoBar(0);
@@ -11097,7 +11321,7 @@ function screenMockIntro(mockId){
     </div>
     ${mockRankCard(mockId, m.label+' — 순위')}`;
   document.getElementById('start').onclick=()=>startMock(mockId);
-  document.getElementById('back').onclick=()=>screenMockRound(m.round);
+  document.getElementById('back').onclick=()=>m.coll==='master'?screenMasterRound(tmRoundNo(m.round)):screenMockRound(m.round);
   wireMockNote(()=>screenMockIntro(mockId));
   wireRank(mockGame(mockId), ()=>screenMockIntro(mockId));
 }
@@ -11244,6 +11468,7 @@ function renderMockQuestion(q, sharedAbove){
 function renderMockContent(c){
   if(c.kind==='plain') return `<div class="qtext" style="margin-top:6px">${c.text}</div>`;
   if(c.kind==='passage') return `<div class="passage">${c.text}</div>`;
+  if(c.kind==='raw') return `<div class="tmraw">${c.html}</div>`;
   if(c.kind==='ad') return `<div class="adbox">${c.t0?`<div class="t0">${c.t0}</div>`:''}<div class="t1">${c.t1}</div>${c.t2?`<div class="t2">${c.t2}</div>`:''}</div>`;
   if(c.kind==='gchart'){
     const max=Math.max(...c.groups.flatMap(g=>g.values));
@@ -11338,11 +11563,11 @@ function renderMockResult(score, seconds, attempt){
     <div class="card"><h2>전체 문항 해설</h2><p class="hint">모든 문항의 정답과 해설을 확인하세요.</p></div>
     ${m.groups.map(g=>renderMockGroup(g,true)).join('')}
     <div class="card"><div class="row">
-      <button class="btn" id="tohub">MOCK ${m.round}(으)로 돌아가기</button>
-      <button class="btn ghost" id="toall">모의고사 목록으로</button>
+      <button class="btn" id="tohub">${m.coll==='master'?'TOPIK MASTER '+m.round:'MOCK '+m.round}(으)로 돌아가기</button>
+      <button class="btn ghost" id="toall">${m.coll==='master'?'TOPIK MASTER 목록으로':'모의고사 목록으로'}</button>
     </div></div>`;
-  document.getElementById('tohub').onclick=()=>screenMockRound(m.round);
-  document.getElementById('toall').onclick=screenMockHub;
+  document.getElementById('tohub').onclick=()=>m.coll==='master'?screenMasterRound(tmRoundNo(m.round)):screenMockRound(m.round);
+  document.getElementById('toall').onclick=()=>m.coll==='master'?screenMasterHub():screenMockHub();
   wireRank(mockGame(m.id), ()=>renderMockResult(score, seconds, attempt));
 }
 function renderMockReview(q, sharedAbove){
@@ -11361,7 +11586,7 @@ function renderMockReview(q, sharedAbove){
     </div>
     <div class="rev ${ok?'ok':'no'}">
       <p class="hint">${picked===undefined?'답을 선택하지 않았습니다.':(ok?'정답입니다.':'오답입니다.')} (정답: ${q.correct+1}번)</p>
-      ${q.explain.map((e,oi)=>`<p class="a"><b>${oi+1})</b> ${e}</p>`).join('')}
+      ${Array.isArray(q.explain)?q.explain.map((e,oi)=>`<p class="a"><b>${oi+1})</b> ${e}</p>`).join(''):(q.explain?`<p class="a">${q.explain}</p>`:'')}
     </div>
   </div>`;
 }
