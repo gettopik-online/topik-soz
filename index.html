@@ -225,6 +225,13 @@
   .tmraw .pic .chart .ct{padding-left:34px}
   .tmraw .pic .chart svg{min-height:150px}
   @media (max-width:760px){ .tmraw .pics{grid-template-columns:1fr} }
+  .pzslot{min-height:58px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;
+    border:2px dashed var(--line);border-radius:12px;padding:10px;margin:12px 0}
+  .pzbank{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:6px}
+  .pz{font:inherit;font-size:22px;font-weight:700;background:var(--card);color:inherit;
+    border:1px solid var(--line);border-radius:10px;padding:8px 14px;cursor:pointer}
+  .pz.on{border-color:var(--accent);color:var(--accent)}
+  .pz:disabled{opacity:.7;cursor:default}
   .wt{cursor:pointer;border-bottom:1.5px dashed var(--accent);}
   .wa-hideans .opt.ok{border-color:var(--line);color:inherit;font-weight:inherit}
   .wa-hideans .wa-ans{display:none}
@@ -413,7 +420,7 @@
         <h1>Yuqori daraja so'zlari</h1>
       </div>
     </div>
-    <p class="lead" id="lead">듣기 va 읽기 bo'limlari. Yuqori daraja (고급). Har raund 3 bosqich: tanishtiruv, variant tanlash, yozish.</p>
+    <p class="lead" id="lead">듣기 va 읽기 bo'limlari. Yuqori daraja (고급). Har raund 4 bosqich: tanishtiruv, variant tanlash, puzzle, yozish.</p>
     <div class="who" id="who"></div>
   </header>
   <main id="app"></main>
@@ -1099,13 +1106,13 @@ function screenRounds(){
       </div>
       <div class="row">
         ${w.length?`<button class="btn" id="rev">Xato so'zlarni takrorlash (${w.length} ta)</button>`:''}
-        <button class="btn ghost" id="back">Variantlar</button>
+        <button class="btn ghost" id="back">${TM_WORDBACK?"뒤로":"Variantlar"}</button>
       </div>
     </div>
     ${testCard(state.set)}`;
   app.querySelectorAll('.round').forEach(b=>b.onclick=()=>startRound(+b.dataset.i));
   const rv=document.getElementById('rev'); if(rv) rv.onclick=()=>startReview(w, state.set);
-  document.getElementById('back').onclick=screenSets;
+  document.getElementById('back').onclick=()=>{ if(TM_WORDBACK) TM_WORDBACK(); else screenSets(); };
   const dt=document.getElementById('dotest'); if(dt) dt.onclick=()=>screenSetTest(state.set);
   if(TESTS[state.set.uid] && testRec(state.set)) wireRank(quizGame(state.set.uid), screenRounds);
 }
@@ -1125,7 +1132,7 @@ function title(){ return state.mode==='review' ? 'Xatolarni takrorlash' : state.
 function backScreen(){ return state.mode==='review' && !state.set ? screenSets : screenRounds; }
 
 function bar(phase, pct){
-  const names=["Tanishtiruv","Variant tanlash","Yozish"];
+  const names=["Tanishtiruv","Variant tanlash","Puzzle","Yozish"];
   return `<div class="bar">
       <div class="step">${title()}</div>
       ${names.map((n,i)=>`<div class="step ${i+1===phase?'on':''}">${i+1}. ${n}</div>`).join('')}
@@ -1195,17 +1202,72 @@ function phase2(){
     fb.className='fb '+(ok?'ok':'no');
     fb.innerHTML=ok?"To'g'ri.":`Noto'g'ri. <b>${w.ko}</b> — ${w.uz}`;
     setTimeout(()=>{
-      if(state.i+1===state.list.length){ state.i=0;state.correct=0;state.wrong=[];phase3(); }
+      if(state.i+1===state.list.length){ state.i=0;state.correct=0;state.wrong=[];phaseP(); }
       else { state.i++; phase2(); }
     }, ok?650:1500);
   });
 }
 
-/* ---- 3: yozish ---- */
+/* ---- 3: puzzle (bo'g'inlardan so'zni yig'ish) ---- */
+function puzzlePieces(ko){
+  // bo'g'inlarga bo'lamiz; probel va qavslar alohida bo'lak bo'lmaydi (ular avtomatik qo'yiladi)
+  return [...ko.replace(/\([^)]*\)/g,'').replace(/\s+/g,'')];
+}
+function phaseP(){
+  const w=state.list[state.i];
+  const target=puzzlePieces(w.ko);
+  let extra=[];
+  if(target.length<=3){                       // qisqa so'zlarga chalg'ituvchi bo'g'in qo'shamiz
+    const pool=[...new Set(state.list.flatMap(x=>puzzlePieces(x.ko)))].filter(c=>!target.includes(c));
+    extra=shuffle(pool).slice(0, Math.max(0, 4-target.length));
+  }
+  let pieces=shuffle(target.concat(extra));
+  if(pieces.length>1 && pieces.join('')===target.join('')) pieces=pieces.reverse();
+  let picked=[];
+  const draw=()=>{
+    app.innerHTML=`
+      ${bar(3, state.i/state.list.length*100)}
+      <div class="card">
+        <div class="hint">${state.i+1} / ${state.list.length} · to'g'ri: ${state.correct}</div>
+        <div class="big-uz" style="margin-top:10px">${w.uz}</div>
+        <p class="hint" style="margin-top:8px">Bo'g'inlarni to'g'ri tartibda bosing.</p>
+        <div class="pzslot" id="slot">${picked.map((p,i)=>`<button class="pz on" data-p="${i}">${pieces[p]}</button>`).join('')||'<span class="hint">…</span>'}</div>
+        <div class="pzbank">${pieces.map((c,i)=>`<button class="pz" data-i="${i}" ${picked.includes(i)?'style="visibility:hidden"':''}>${c}</button>`).join('')}</div>
+        <div class="row">
+          <button class="btn" id="check" ${picked.length?'':'disabled'}>Tekshirish</button>
+          <button class="btn ghost" id="undo" ${picked.length?'':'disabled'}>Orqaga</button>
+          <button class="btn ghost" id="show">Javobni ko'rsatish</button>
+        </div>
+        <div class="fb" id="fb"></div>
+      </div>
+      <button class="btn ghost" id="exit">Chiqish</button>`;
+    document.getElementById('exit').onclick=backScreen();
+    app.querySelectorAll('.pzbank .pz').forEach(b=>b.onclick=()=>{ picked.push(+b.dataset.i); draw(); });
+    app.querySelectorAll('.pzslot .pz').forEach(b=>b.onclick=()=>{ picked.splice(+b.dataset.p,1); draw(); });
+    document.getElementById('undo').onclick=()=>{ picked.pop(); draw(); };
+    document.getElementById('check').onclick=()=>done(picked.map(i=>pieces[i]).join('')===target.join(''));
+    document.getElementById('show').onclick=()=>done(false);
+  };
+  function done(ok){
+    app.querySelectorAll('.pz').forEach(b=>b.disabled=true);
+    const fb=document.getElementById('fb');
+    fb.className='fb '+(ok?'ok':'no');
+    fb.innerHTML=ok?"To'g'ri.":`To'g'ri javob: <b>${w.ko}</b>`;
+    if(ok) state.correct++; else state.wrong.push(w);
+    markMiss(state.i, ok);
+    setTimeout(()=>{
+      if(state.i+1===state.list.length){ state.i=0;state.correct=0;state.wrong=[];phase3(); }
+      else { state.i++; phaseP(); }
+    }, ok?650:1600);
+  }
+  draw();
+}
+
+/* ---- 4: yozish ---- */
 function phase3(){
   const w=state.list[state.i];
   app.innerHTML=`
-    ${bar(3, state.i/state.list.length*100)}
+    ${bar(4, state.i/state.list.length*100)}
     <div class="card">
       <div class="hint">${state.i+1} / ${state.list.length} · to'g'ri: ${state.correct}</div>
       <div class="big-uz" style="margin-top:10px">${w.uz}</div>
@@ -11169,6 +11231,24 @@ function mockRounds(){
    mavjud MOCK dvigateli (taymer, baholash, ko'rib chiqish) ishlatiladi. */
 const TM_ROUNDS = [1,2,3,4,5,6,7,8,9,10];
 function tmRoundNo(r){ return parseInt(String(r).replace(/[^0-9]/g,''),10); }
+let TM_WORDBACK=null;        // so'z ekranlaridan qaytish joyi (TOPIK MASTER uchun)
+// master/words-*.js fayllari chaqiradi: test so'zlari bo'limini qo'shadi
+function MASTER_WORDS(o){
+  if(SECTIONS.some(s=>s.id===o.id)) return;
+  const sec={ id:o.id, type:o.type, label:o.label, hidden:true, tm:true,
+    sets:[{ id:'w', title:o.title, sub:o.sub, words:o.words }] };
+  sec.sets.forEach(s=>{ s.secId=sec.id; s.uid=sec.id+'-'+s.id; ALLSETS.push(s); });
+  SECTIONS.push(sec);
+  const u=U(); if(u){ if(!u.stats) u.stats={}; sec.sets.forEach(s=>{ if(!u.stats[s.uid]) u.stats[s.uid]={}; }); save(); }
+}
+function tmWordsSec(n, type){ return SECTIONS.find(s=>s.id==='tmw-'+type+'-'+n); }
+function tmOpenWords(n, type){
+  const sec=tmWordsSec(n,type); if(!sec) return;
+  const u=U(); if(u && !u.stats[sec.sets[0].uid]){ u.stats[sec.sets[0].uid]={}; save(); }
+  TYPE=sec.type; SEC=sec.id; state.set=sec.sets[0];
+  TM_WORDBACK=()=>screenMasterSkill(n, type);
+  screenRounds();
+}
 const TM_LOADED = {};
 function MASTER_ADD(t){ if(!MOCKS.some(m=>m.id===t.id)) MOCKS.push(t); }
 // WA_TESTS (분석하기) ichidagi tayyor testdan imtihon yasaydi
@@ -11192,7 +11272,8 @@ function tmLoadScript(src){
 }
 async function tmLoadRound(n){
   if(TM_LOADED[n]) return;
-  await Promise.all([tmLoadScript('master/listen-'+n+'.js'), tmLoadScript('master/read-'+n+'.js')]);
+  await Promise.all([tmLoadScript('master/listen-'+n+'.js'), tmLoadScript('master/read-'+n+'.js'),
+                     tmLoadScript('master/words-listen-'+n+'.js'), tmLoadScript('master/words-read-'+n+'.js')]);
   TM_LOADED[n]=true;
 }
 function screenMasterHub(){
@@ -11223,7 +11304,7 @@ async function screenMasterRound(n){
       <div class="n" style="font-size:22px">${t}</div>
       <div class="m">준비 중</div></button>`;
     const c=mockAttemptCount(m.id);
-    return `<button class="set" data-m="${m.id}">
+    return `<button class="set" data-m="${m.id}" data-t="${t}">
       <div class="n" style="font-size:22px">${t}</div>
       <div class="m">${m.note?m.note+' · ':''}${mockTotalCount(m)}문항 · ${Math.floor(m.durationSec/60)}분</div>
       <div class="m" style="color:${c?'var(--accent)':'var(--muted)'}">${c?c+'번 응시함':'아직 응시하지 않음'}</div>
@@ -11236,10 +11317,38 @@ async function screenMasterRound(n){
       <div class="sets" style="margin-top:12px">${MOCKTYPES.map(card).join('')}</div>
       <div class="row"><button class="btn ghost" id="back">뒤로</button></div>
     </div>`;
-  app.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>screenMockIntro(b.dataset.m));
+  app.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>screenMasterSkill(n, b.dataset.t));
   document.getElementById('back').onclick=screenMasterHub;
 }
 function mockOf(round, type, coll){ return MOCKS.find(m=>m.round===round && m.testType===type && (m.coll||'mock')===(coll||'mock')); }
+
+// 회 + 영역 → 2 ta tugma: test ishlash / so'z yodlash
+async function screenMasterSkill(n, type){
+  whoBar(0);
+  const round='제'+n+'회';
+  await tmLoadRound(n);
+  const m=mockOf(round, type, 'master');
+  const sec=tmWordsSec(n, type);
+  let wordInfo='준비 중';
+  if(sec){ const s=sec.sets[0], st=setStat(s);
+    wordInfo=s.words.length+" ta so'z · "+rounds(s).length+' raund'+(st.done?' · '+st.ok+'/'+st.all+" to'g'ri":''); }
+  const btn=(go,title,sub,on)=> on
+    ? '<button class="set" data-go="'+go+'"><div class="n" style="font-size:22px">'+title+'</div><div class="m">'+sub+'</div></button>'
+    : '<button class="set" disabled style="opacity:.45"><div class="n" style="font-size:22px">'+title+'</div><div class="m">준비 중</div></button>';
+  app.innerHTML=
+    '<div class="card">'+
+      '<h2>TOPIK MASTER '+round+' '+type+'</h2>'+
+      '<p class="hint">무엇을 할까요?</p>'+
+      '<div class="sets" style="margin-top:12px">'+
+        btn('test','시험 보기', m?(mockTotalCount(m)+'문항 · '+Math.floor(m.durationSec/60)+'분 · '+(mockAttemptCount(m.id)?mockAttemptCount(m.id)+'번 응시함':'아직 응시하지 않음')):'', !!m)+
+        btn('words','단어 외우기', wordInfo, !!sec)+
+      '</div>'+
+      '<div class="row"><button class="btn ghost" id="back">뒤로</button></div>'+
+    '</div>';
+  const t=app.querySelector('[data-go="test"]'); if(t) t.onclick=()=>screenMockIntro(m.id);
+  const w=app.querySelector('[data-go="words"]'); if(w) w.onclick=()=>tmOpenWords(n, type);
+  document.getElementById('back').onclick=()=>screenMasterRound(n);
+}
 
 function screenMockHub(){
   whoBar(0);
@@ -11321,7 +11430,7 @@ function screenMockIntro(mockId){
     </div>
     ${mockRankCard(mockId, m.label+' — 순위')}`;
   document.getElementById('start').onclick=()=>startMock(mockId);
-  document.getElementById('back').onclick=()=>m.coll==='master'?screenMasterRound(tmRoundNo(m.round)):screenMockRound(m.round);
+  document.getElementById('back').onclick=()=>m.coll==='master'?screenMasterSkill(tmRoundNo(m.round), m.testType):screenMockRound(m.round);
   wireMockNote(()=>screenMockIntro(mockId));
   wireRank(mockGame(mockId), ()=>screenMockIntro(mockId));
 }
@@ -11566,7 +11675,7 @@ function renderMockResult(score, seconds, attempt){
       <button class="btn" id="tohub">${m.coll==='master'?'TOPIK MASTER '+m.round:'MOCK '+m.round}(으)로 돌아가기</button>
       <button class="btn ghost" id="toall">${m.coll==='master'?'TOPIK MASTER 목록으로':'모의고사 목록으로'}</button>
     </div></div>`;
-  document.getElementById('tohub').onclick=()=>m.coll==='master'?screenMasterRound(tmRoundNo(m.round)):screenMockRound(m.round);
+  document.getElementById('tohub').onclick=()=>m.coll==='master'?screenMasterSkill(tmRoundNo(m.round), m.testType):screenMockRound(m.round);
   document.getElementById('toall').onclick=()=>m.coll==='master'?screenMasterHub():screenMockHub();
   wireRank(mockGame(m.id), ()=>renderMockResult(score, seconds, attempt));
 }
