@@ -10042,6 +10042,25 @@ function waWrapContent(c){
   if(c.kind==='raw') return {kind:'raw', html: waWrapHtml(c.html)};
   return waDeepWrap(c);
 }
+// Ekran chizilgandan keyin: hali o'ralmagan koreyscha matn (ko'rsatmalar, savol matnlari,
+// 남자/여자 belgilari, izohlardagi iqtiboslar) ham so'zma-so'z bosiladigan bo'ladi.
+function waWrapDom(root){
+  if(!root) return;
+  const walker=document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes=[]; let n;
+  while((n=walker.nextNode())){
+    if(!/[\uac00-\ud7a3]/.test(n.textContent)) continue;
+    const el=n.parentElement;
+    if(!el || el.closest('svg,.wt,.fab,button.btn,h2,script,style,textarea,input')) continue;
+    nodes.push(n);
+  }
+  nodes.forEach(t=>{
+    const html=waWrap(ssEsc(t.textContent));
+    if(html.indexOf('class="wt"')<0) return;
+    const tmp=document.createElement('span'); tmp.innerHTML=html;
+    t.replaceWith(...tmp.childNodes);
+  });
+}
 function waDeepWrap(obj){
   if(typeof obj==='string') return waWrap(obj);
   if(Array.isArray(obj)) return obj.map(waDeepWrap);
@@ -10714,8 +10733,10 @@ function waScreenHub(){
     await tmLoadRound(+n);
     waScreenAnsTest('tm-'+(t==='듣기'?'listen':'read')+'-'+n, waScreenHub);
   });
-  app.querySelectorAll('[data-waid]').forEach(b=>b.onclick=()=>{
+  app.querySelectorAll('[data-waid]').forEach(b=>b.onclick=async()=>{
     const item=WA_ITEMS.find(x=>x.id===b.dataset.waid);
+    b.querySelector('.m').textContent='불러오는 중…';
+    await tmLoadDict();
     const wt = WA_TESTS.find(x=>x.id===item.id);
     if(waHasAnswers(wt)) waScreenAnsTest(item.id);
     else if(item.type==='listen') waScreenListen(item.id);
@@ -10747,6 +10768,7 @@ function waScreenListen(id){
   const goBack=waScreenHub;
   document.getElementById('wareadback').onclick=goBack;
   const bb=document.getElementById('wabackbottom'); if(bb) bb.onclick=goBack;
+  waWrapDom(app);
   fabShow([{label:'↑', onclick:()=>window.scrollTo({top:0,behavior:'smooth'})},
            {label:'뒤로', main:true, onclick:goBack}]);
 }
@@ -10789,6 +10811,7 @@ function waScreenAnsTest(id, back){
   const goBack=back||waScreenHub;
   document.getElementById('wareadback').onclick=goBack;
   const bb=document.getElementById('wabackbottom'); if(bb) bb.onclick=goBack;
+  waWrapDom(app);
   fabShow([{label:'↑', onclick:()=>window.scrollTo({top:0,behavior:'smooth'})},
            {label:'뒤로', main:true, onclick:goBack}]);
   const hb=document.getElementById('wahideans');
@@ -10820,6 +10843,7 @@ function waScreenRead(id){
   const goBack=waScreenHub;
   document.getElementById('wareadback').onclick=goBack;
   const bb=document.getElementById('wabackbottom'); if(bb) bb.onclick=goBack;
+  waWrapDom(app);
   fabShow([{label:'↑', onclick:()=>window.scrollTo({top:0,behavior:'smooth'})},
            {label:'뒤로', main:true, onclick:goBack}]);
 }
@@ -11389,12 +11413,17 @@ function tmLoadScript(src){
     document.head.appendChild(s);
   });
 }
+async function tmLoadDict(){
+  if(TM_LOADED.dict) return;
+  TM_LOADED.dict=true;
+  await tmLoadScript('master/dict.js');
+}
 async function tmLoadWords(n){
   await Promise.all([tmLoadScript('master/words-listen-'+n+'.js'), tmLoadScript('master/words-read-'+n+'.js')]);
 }
 async function tmLoadRound(n){
   if(TM_LOADED[n]) return;
-  if(!TM_LOADED.dict){ TM_LOADED.dict=true; await tmLoadScript('master/dict.js'); }   // 분석하기 lug'ati
+  await tmLoadDict();   // 분석하기 lug'ati
   await Promise.all([tmLoadScript('master/listen-'+n+'.js'), tmLoadScript('master/read-'+n+'.js'),
                      tmLoadScript('master/words-listen-'+n+'.js'), tmLoadScript('master/words-read-'+n+'.js')]);
   await Promise.all([tmLoadScript('master/exp-listen-'+n+'.js'), tmLoadScript('master/exp-read-'+n+'.js')]);
