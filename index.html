@@ -10027,6 +10027,15 @@ function waWrap(text){
   if(text==null) return text;
   return String(text).replace(/(<[^>]+>)|([\uac00-\ud7a3]+)/g, (m, tag, word) => tag ? tag : waWrapWord(word));
 }
+function waWrapHtml(html){
+  const RE=new RegExp('(<svg[\\s\\S]*?<'+'/svg>)','i');
+  return String(html).split(RE).map((part,i)=> i%2 ? part : waWrap(part)).join('');
+}
+function waWrapContent(c){
+  if(!c) return c;
+  if(c.kind==='raw') return {kind:'raw', html: waWrapHtml(c.html)};
+  return waDeepWrap(c);
+}
 function waDeepWrap(obj){
   if(typeof obj==='string') return waWrap(obj);
   if(Array.isArray(obj)) return obj.map(waDeepWrap);
@@ -10672,8 +10681,24 @@ function waScreenHub(){
       </button>`).join('')}
     </div>
     <div class="row" style="margin-top:14px"><button class="btn ghost" id="wahubback">Orqaga</button></div>
+  </div>
+  <div class="card">
+    <h2>TOPIK MASTER</h2>
+    <p class="hint">실전 모의고사 10회 — 듣기/읽기 matnlari, to'g'ri javoblari bilan.</p>
+    <div class="sets" style="margin-top:12px">
+      ${TM_ROUNDS.map(n=>['듣기','읽기'].map(t=>`<button class="set" data-tmwa="${n}-${t}">
+        <div class="n" style="font-size:19px">TOPIK MASTER 제${n}회 ${t}</div>
+        <div class="m">1~50번 · so'zni bosing, tarjimasi chiqadi</div>
+      </button>`).join('')).join('')}
+    </div>
   </div>`;
   document.getElementById('wahubback').onclick=screenTypes;
+  app.querySelectorAll('[data-tmwa]').forEach(b=>b.onclick=async()=>{
+    const [n,t]=b.dataset.tmwa.split('-');
+    b.querySelector('.m').textContent='불러오는 중…';
+    await tmLoadRound(+n);
+    waScreenAnsTest('tm-'+(t==='듣기'?'listen':'read')+'-'+n, waScreenHub);
+  });
   app.querySelectorAll('[data-waid]').forEach(b=>b.onclick=()=>{
     const item=WA_ITEMS.find(x=>x.id===b.dataset.waid);
     const wt = WA_TESTS.find(x=>x.id===item.id);
@@ -10719,11 +10744,11 @@ function waScreenAnsTest(id, back){
   const isListen = m.type==='listen' || m.testType==='듣기';
   const hasExp = m.groups.some(g=>g.questions.some(q=>q.explain));
   const groupsHtml = m.groups.map(g=>`<div class="qcard mockgroup"><p class="ins">${g.instruction}</p>
-    ${g.shared?renderMockContent(waDeepWrap(g.shared)):''}
+    ${g.shared?renderMockContent(waWrapContent(g.shared)):''}
     ${waListenScript(g.script)}
     ${g.questions.map(q=>`<div class="mockq">
       <div class="qtext"><span class="qnum">${q.num}</span>${q.prompt?waWrap(q.prompt):(q.stem?waWrap(q.stem):'')}</div>
-      ${q.content?renderMockContent(waDeepWrap(q.content)):''}
+      ${q.content?renderMockContent(waWrapContent(q.content)):''}
       ${waListenScript(q.script)}
       <div class="opts" style="margin-top:14px">
         ${q.options.map((o,oi)=>`<div class="opt${oi===q.correct?' ok':''}">${mockOptLabel(waDeepWrap(o),oi)}</div>`).join('')}
