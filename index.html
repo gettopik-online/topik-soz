@@ -11356,6 +11356,10 @@ function MASTER_EXPLAIN(o){
     });
   });
 }
+function MASTER_SS(o){
+  if(SSSETS.some(x=>x.id===o.id)) return;
+  SSSETS.push({ id:o.id, title:o.title, q51:o.q51, q52:o.q52, q53:o.q53, q54:o.q54, vocab:o.vocab||null, tm:true });
+}
 function tmWordsSec(n, type){ return SECTIONS.find(s=>s.id==='tmw-'+type+'-'+n); }
 // 단어 외우기 ichidagi ikkita tugma: 연습 (raundlar) va 시험 (50 so'z testi)
 function screenMasterWords(n, type){
@@ -11404,7 +11408,7 @@ function MASTER_FROM_WA(o){
       return nq;
     })}));
   MASTER_ADD({ id:o.id, coll:'master', round:o.round, testType:o.testType,
-    label:o.label, durationSec:o.durationSec, note:o.note, groups });
+    label:o.label, durationSec:o.durationSec, note:o.note, audio:o.audio, groups });
 }
 function tmLoadScript(src){
   return new Promise(res=>{
@@ -11426,7 +11430,7 @@ async function tmLoadRound(n){
   await tmLoadDict();   // 분석하기 lug'ati
   await Promise.all([tmLoadScript('master/listen-'+n+'.js'), tmLoadScript('master/read-'+n+'.js'),
                      tmLoadScript('master/words-listen-'+n+'.js'), tmLoadScript('master/words-read-'+n+'.js')]);
-  await Promise.all([tmLoadScript('master/exp-listen-'+n+'.js'), tmLoadScript('master/exp-read-'+n+'.js')]);
+  await Promise.all([tmLoadScript('master/exp-listen-'+n+'.js'), tmLoadScript('master/exp-read-'+n+'.js'), tmLoadScript('master/ss-'+n+'.js')]);
   TM_LOADED[n]=true;
 }
 function screenMasterHub(){
@@ -11452,6 +11456,12 @@ async function screenMasterRound(n){
   app.innerHTML=`<div class="card"><h2>TOPIK MASTER ${round}</h2><p class="hint">불러오는 중…</p></div>`;
   await tmLoadRound(n);
   const card=t=>{
+    if(t==='쓰기'){
+      const ss=SSSETS.find(x=>x.id==='tm-ss-'+n);
+      if(!ss) return `<button class="set" disabled style="opacity:.45"><div class="n" style="font-size:22px">쓰기</div><div class="m">준비 중</div></button>`;
+      return `<button class="set" data-ssw="${ss.id}"><div class="n" style="font-size:22px">쓰기</div>
+        <div class="m">51 · 52 · 53 · 54 · 원고지 · ustozga PDF</div></button>`;
+    }
     const m=mockOf(round,t,'master');
     if(!m) return `<button class="set" disabled style="opacity:.45">
       <div class="n" style="font-size:22px">${t}</div>
@@ -11471,6 +11481,7 @@ async function screenMasterRound(n){
       <div class="row"><button class="btn ghost" id="back">뒤로</button></div>
     </div>`;
   app.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>screenMasterSkill(n, b.dataset.t));
+  app.querySelectorAll('[data-ssw]').forEach(b=>b.onclick=()=>{ SSID=b.dataset.ssw; SS_BACK=()=>screenMasterRound(n); ssScreenSetIntro(); });
   document.getElementById('back').onclick=screenMasterHub;
 }
 function mockOf(round, type, coll){ return MOCKS.find(m=>m.round===round && m.testType===type && (m.coll||'mock')===(coll||'mock')); }
@@ -12397,6 +12408,7 @@ function ssChart53BarForecastHTML(c){
 }
 function ssChart53HTML(){
   const c=ssSet().q53;
+  if(c.layout==='image') return `<div class="qimg"><img src="${c.img}" alt="53-savol grafigi" style="max-width:100%"></div>`;
   if(c.layout==='petindustry') return ssChart53PetHTML(c);
   if(c.layout==='linebar') return ssChart53LineBarHTML(c);
   if(c.layout==='barforecast') return ssChart53BarForecastHTML(c);
@@ -12409,7 +12421,7 @@ function ssScreen53(){
     ${ssSteps('53')}
     <div class="card ss-card">
       <h2>53-savol</h2>
-      <p class="hint" style="margin-bottom:10px">'${ssEsc(c.topicTitle)}'ga oid quyidagi ma'lumotlarga asoslanib, 200~300자lik matn yozing. Sarlavha yozmang.</p>
+      ${c.prompt?`<div class="ss-passage" style="margin-bottom:10px">${ssEsc(c.prompt)}</div>`:`<p class="hint" style="margin-bottom:10px">'${ssEsc(c.topicTitle)}'ga oid quyidagi ma'lumotlarga asoslanib, 200~300자lik matn yozing. Sarlavha yozmang.</p>`}
       ${ssChart53HTML()}
       <label class="ss-f">Javobingiz:</label>
       <textarea id="ssta53" placeholder="여기에 작문하세요...">${ssEsc(s.a53)}</textarea>
@@ -12529,6 +12541,7 @@ function ssScreen54(){
     ${ssSteps('54')}
     <div class="card ss-card">
       <h2>54-savol — ${ssEsc(q54.title)}</h2>
+      ${q54.prompt?`<p style="margin:0 0 8px;font-weight:600">${ssEsc(q54.prompt)}</p>`:''}
       <div class="ss-passage">${ssEsc(q54.passage)}</div>
       <ul style="margin:0 0 4px 20px">${q54.bullets.map((b,i)=>`<li style="margin-bottom:4px">${ssEsc(b)}${i===q54.bullets.length-1?' <b style="color:var(--accent)">← bugungi savol</b>':''}</li>`).join('')}</ul>
     </div>`;
@@ -12731,11 +12744,14 @@ function ssScreenDone(){
     const pdf=await ssGeneratePdf();
     ssDownloadBlob(pdf.output('blob'), ssPdfFilename());
   };
-  document.getElementById('sshome2').onclick=ssScreenHub;
+  document.getElementById('sshome2').onclick=ssBackHub;
 }
 
 /* ---- 쓰기 hub: to'plamlar ro'yxati ---- */
+let SS_BACK=null;                 // 쓰기 dan qaytish joyi (TOPIK MASTER uchun)
+function ssBackHub(){ if(SS_BACK){ const b=SS_BACK; b(); } else ssScreenHub(); }
 function ssScreenHub(){
+  SS_BACK=null;
   whoBar(1);
   const u=U(); const setsU=(u&&u.sseogiSets)||{}; const attemptsU=(u&&u.sseogiAttempts)||{};
   app.innerHTML = `<div class="card ss-card">
@@ -12792,7 +12808,7 @@ function ssScreenSetIntro(){
   }
   app.innerHTML = html;
   document.getElementById('ssgo').onclick=ssScreenRouter;
-  document.getElementById('sshubback2').onclick=ssScreenHub;
+  document.getElementById('sshubback2').onclick=ssBackHub;
   app.querySelectorAll('[data-vockey]').forEach(b=>b.onclick=()=>ssVocabStart(SSID, b.dataset.vockey));
 }
 
