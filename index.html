@@ -370,6 +370,12 @@
   .listenbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
   .listenbar .dot{width:11px;height:11px;border-radius:50%;background:var(--no);animation:pulse 1.4s infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  .speedbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .speedbar .lbl{color:var(--muted);font-size:14px}
+  .spd{background:var(--card);color:inherit;border:1px solid var(--line);border-radius:9px;padding:7px 12px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;min-width:44px}
+  .spd.on{border-color:var(--accent);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+  .spd:disabled{opacity:.4;cursor:default}
+  .spdval{min-width:52px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
   .piewrap{display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:center}
   .pielegend{display:grid;gap:7px;font-size:14px}
   .pielegend div{display:flex;align-items:center;gap:8px;white-space:nowrap}
@@ -1096,6 +1102,7 @@ function screenSetTest(set){
       <p class="hint">${set.sub}</p>
       <p class="hint" style="margin-top:8px">Audioni tinglang. Javob belgilash audio tugashiga 10 soniya qolganda ochiladi, matn esa audio to'liq tugagach ochiladi.</p>
       <audio id="qaudio" controls style="width:100%;margin-top:12px" src="${t.audio}">Brauzeringiz audio elementini qo'llab-quvvatlamaydi.</audio>
+      ${speedBarHTML()}
       <div class="row" style="margin-top:12px" id="textrow">
         <span class="hint">Matnni ko'rish uchun audioni oxirigacha tinglang.</span>
       </div>
@@ -1113,9 +1120,39 @@ function screenSetTest(set){
     <div id="testresult"></div>`;
   wireSetTestAudio();
 }
+// audio tezligi: 1x/1.5x/2x tugmalari va 0.1 qadamli −/+ ; tanlov qurilmada eslab qolinadi
+const AU_RATE_KEY='gt-audio-rate', AU_RATE_MIN=0.5, AU_RATE_MAX=2;
+function savedAudioRate(){
+  try{ const v=parseFloat(localStorage.getItem(AU_RATE_KEY)); if(v>=AU_RATE_MIN && v<=AU_RATE_MAX) return v; }catch(e){}
+  return 1;
+}
+function speedBarHTML(){
+  return `<div class="speedbar" id="speedbar"><span class="lbl">Tezlik:</span>
+    ${[1,1.5,2].map(r=>`<button class="spd" type="button" data-rate="${r}">${r}x</button>`).join('')}
+    <span class="lbl" style="margin-left:8px">Aniq:</span>
+    <button class="spd" type="button" data-step="-0.1" aria-label="Sekinroq">−</button>
+    <span class="spdval" id="spdval" aria-live="polite">1.0x</span>
+    <button class="spd" type="button" data-step="0.1" aria-label="Tezroq">+</button></div>`;
+}
+function wireSpeedBar(au){
+  const bar=document.getElementById('speedbar'); if(!au || !bar) return;
+  const apply=r=>{
+    r=Math.round(Math.min(AU_RATE_MAX, Math.max(AU_RATE_MIN, r))*10)/10;
+    au.defaultPlaybackRate=r; au.playbackRate=r;
+    try{ localStorage.setItem(AU_RATE_KEY, String(r)); }catch(e){}
+    document.getElementById('spdval').textContent=r.toFixed(1)+'x';
+    bar.querySelectorAll('[data-rate]').forEach(b=>b.classList.toggle('on', +b.dataset.rate===r));
+    bar.querySelector('[data-step="-0.1"]').disabled = r<=AU_RATE_MIN;
+    bar.querySelector('[data-step="0.1"]').disabled = r>=AU_RATE_MAX;
+  };
+  bar.querySelectorAll('[data-rate]').forEach(b=>b.onclick=()=>apply(+b.dataset.rate));
+  bar.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>apply(au.playbackRate+(+b.dataset.step)));
+  apply(savedAudioRate());
+}
 // audio elementi qayta yaratilmasligi uchun ekran qayta chizilmaydi — DOM joyida yangilanadi
 function wireSetTestAudio(){
   const au=document.getElementById('qaudio'); if(!au) return;
+  wireSpeedBar(au);
   const markCanAnswer=()=>{
     if(setTest.canAnswer) return; setTest.canAnswer=true;
     app.querySelectorAll('.answerhint').forEach(h=>h.remove());
@@ -11906,6 +11943,7 @@ function renderMockExam(){
       <div class="listenbar"><span class="dot"></span><b id="austate">듣기 방송 중</b>
         <span class="hint">방송은 멈추거나 되돌릴 수 없습니다. 끝나면 자동으로 채점됩니다.</span></div>
       <audio id="mockaudio" src="${m.audio}" preload="auto"></audio>
+      ${speedBarHTML()}
       <div class="row" style="margin-top:10px"><button class="btn" id="auplay" style="display:none">▶ 방송 다시 시작</button></div>
     </div>`:''}
     ${m.groups.map(g=>renderMockGroup(g,false)).join('')}
@@ -11930,6 +11968,7 @@ function renderMockExam(){
 function wireMockAudio(){
   const au=document.getElementById('mockaudio'); if(!au) return;
   mockState.audio=au;
+  wireSpeedBar(au);
   const btn=document.getElementById('auplay');
   const state=document.getElementById('austate');
   au.onended=()=>{ if(!mockState.finished) finishMock(); };
