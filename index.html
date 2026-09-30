@@ -839,8 +839,9 @@ function screenRanking(){
   whoBar(0);
   const t=totalStat();
   app.innerHTML=`${rankCard(gTotal(),'Umumiy reyting',t.all)}
-    <div class="card"><div class="row"><button class="btn ghost" id="back" style="margin-top:0">Orqaga</button></div></div>`;
+    <div class="card"><div class="row"><button class="btn ghost" id="back" style="margin-top:0">Orqaga</button><button class="btn ghost" id="totmrank" style="margin-top:0">TOPIK MASTER reytingi</button></div></div>`;
   document.getElementById('back').onclick=screenTypes;
+  document.getElementById('totmrank').onclick=()=>screenMasterRank();
   wireRank(gTotal(), screenRanking);
 }
 
@@ -11622,7 +11623,7 @@ function tmRenderHub(){
   const K=[0,.75,1,.75,0,-.75,-1,-.75];
   app.innerHTML=`
     <div class="card">
-      <div class="tmmap-head"><h2 style="margin:0">TOPIK MASTER</h2><span class="hint">${doneN} / ${TM_ROUNDS.length} 회 tugatildi</span></div>
+      <div class="tmmap-head"><h2 style="margin:0">TOPIK MASTER</h2><span class="hint">${doneN} / ${TM_ROUNDS.length} 회 tugatildi · <button class="link" id="tmrank">Reyting</button></span></div>
       <div class="prog" style="margin:10px 0 6px"><i style="width:${pct}%;background:var(--ok)"></i></div>
       <p class="hint">회 yashil bo'lishi uchun: 듣기 va 읽기 testlari, 쓰기 (ustozga yuborilgan) va barcha so'z raundlari.</p>
       <div class="tmmap">
@@ -11641,7 +11642,55 @@ function tmRenderHub(){
     </div>`;
   app.querySelectorAll('[data-tm]').forEach(b=>b.onclick=()=>screenMasterRound(+b.dataset.tm));
   document.getElementById('back').onclick=screenTypes;
+  document.getElementById('tmrank').onclick=()=>screenMasterRank();
   const c=app.querySelector('.tmn.cur'); if(c && cur>2) c.scrollIntoView({block:'center'});
+}
+/* ============ TOPIK MASTER umumiy reytingi ============
+   Serverdagi 20 ta test reytingini (10 회 × 듣기/읽기) bittaga jamlaydi.
+   Har o'quvchi uchun har testdagi ENG YAXSHI urinish olinadi ("Ali (2)" -> "Ali"). */
+function tmRankIds(){ return TM_ROUNDS.flatMap(n=>['tm-listen-'+n,'tm-read-'+n]); }
+function tmRankRows(){
+  const by={};
+  for(const id of tmRankIds()){
+    for(const r of (TOPS[mockGame(id)]||[])){
+      // noto'g'ri qatorlar (0 soniya, 100 dan ortiq ball) hisobga olinmaydi
+      if(typeof r.ok!=='number' || r.ok<0 || r.ok>100 || !(r.done>0) || r.done>5400) continue;
+      const name=String(r.name).replace(/ \(\d+\)$/,'');
+      const p=by[name]||(by[name]={name, best:{}});
+      if(!(id in p.best) || r.ok>p.best[id]) p.best[id]=r.ok;
+    }
+  }
+  return Object.values(by).map(p=>{
+    const v=Object.values(p.best), total=v.reduce((a,b)=>a+b,0);
+    return {name:p.name, tests:v.length, total, avg:Math.round(total/v.length)};
+  }).sort((a,b)=>b.total-a.total || b.avg-a.avg);
+}
+async function screenMasterRank(force){
+  whoBar(0);
+  const games=tmRankIds().map(mockGame);
+  if(force) games.forEach(g=>{ delete TOPS[g]; delete TOPERR[g]; });
+  app.innerHTML=`<div class="card" id="tmrankload"><h2>TOPIK MASTER — reyting</h2><p class="hint">Yuklanmoqda…</p></div>`;
+  await Promise.all(games.map(g=>TOPS[g]!==undefined && !TOPERR[g] ? null : fetchTop(g)));
+  if(!document.getElementById('tmrankload')) return;
+  const allErr=games.every(g=>TOPERR[g]);
+  const list=tmRankRows();
+  const body = allErr ? `<p class="hint">Reytingni yuklab bo'lmadi. Internetni tekshiring.</p>`
+    : !list.length ? `<p class="hint">Hali hech kim TOPIK MASTER testini ishlamagan. Birinchi bo'ling!</p>`
+    : `<table class="rank">
+        <tr><th>#</th><th>Ism</th><th class="num">Testlar</th><th class="num">Jami ball</th><th class="num">O'rtacha</th></tr>
+        ${list.map((r,i)=>`<tr class="${isMyMockRow(r.name)?'me':''}">
+          <td>${i+1}</td><td>${ssEsc(r.name)}</td><td class="num">${r.tests} / ${games.length}</td>
+          <td class="num">${r.total}</td><td class="num">${r.avg}</td></tr>`).join('')}
+      </table>`;
+  app.innerHTML=`
+    <div class="card">
+      <h2>TOPIK MASTER — reyting</h2>
+      <p class="hint">20 ta test (10 회 × 듣기, 읽기). Har testdan eng yaxshi natija olinadi. Jami ball ko'p bo'lsa — yuqorida.</p>
+      ${body}
+      <div class="row"><button class="btn ghost" id="reload">Yangilash</button><button class="btn ghost" id="back">Orqaga</button></div>
+    </div>`;
+  document.getElementById('reload').onclick=()=>screenMasterRank(true);
+  document.getElementById('back').onclick=screenMasterHub;
 }
 async function screenMasterRound(n){
   whoBar(0);
