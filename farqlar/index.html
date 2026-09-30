@@ -78,7 +78,6 @@ body {
 .versus .w { font-size: clamp(2.8rem, 8vw, 6rem); font-weight: 900; letter-spacing: -0.02em; line-height: 1.1; }
 .w1 { color: var(--blue); } .w2 { color: var(--red); }
 .vs { width: clamp(58px, 7vw, 88px); aspect-ratio: 1; border-radius: 50%; background: var(--red); color: var(--on-red); display: grid; place-items: center; font-weight: 700; font-size: clamp(1.1rem, 2.2vw, 1.6rem); }
-.cover .sub { margin: 0; color: var(--muted); font-size: clamp(.95rem, 1.6vw, 1.15rem); }
 .pop { animation: pop .55s cubic-bezier(.2,.8,.2,1) both; }
 .pop.d2 { animation-delay: .25s; } .pop.d3 { animation-delay: .45s; }
 @keyframes pop { from { opacity: 0; transform: translateY(16px) scale(.96); } to { opacity: 1; transform: none; } }
@@ -111,15 +110,13 @@ body {
 .tr { margin: 4px 0 0; color: var(--muted); font-size: clamp(.92rem, 1.4vw, 1.02rem); }
 
 /* summary */
-.rows { display: flex; flex-direction: column; gap: 14px; }
-.row { border-radius: 18px; padding: 18px 26px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+.rows { display: flex; flex-direction: column; justify-content: center; gap: 20px; flex: 1; }
+.row { border-radius: 20px; padding: clamp(18px, 3vw, 34px) clamp(20px, 3vw, 36px); display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
 .row .dot { width: 16px; height: 16px; border-radius: 50%; flex: none; }
-.row .cond { flex: 1 1 260px; min-width: 0; font-size: clamp(1.02rem, 1.9vw, 1.35rem); }
-.row .ans { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 900; }
+.row .cond { flex: 1 1 260px; min-width: 0; font-size: clamp(1.1rem, 2.3vw, 1.7rem); }
+.row .ans { font-size: clamp(1.7rem, 3.8vw, 2.8rem); font-weight: 900; }
 .row.b { background: var(--blue-tint); } .row.b .dot { background: var(--blue); } .row.b .ans { color: var(--blue); }
 .row.r { background: var(--red-tint); } .row.r .dot { background: var(--red); } .row.r .ans { color: var(--red); }
-.note { background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 18px; padding: 18px 26px; font-size: clamp(.98rem, 1.6vw, 1.12rem); margin: 0; }
-.note strong { color: var(--red); }
 
 /* outro */
 .outro { align-items: center; justify-content: center; text-align: center; }
@@ -135,17 +132,15 @@ body {
 .btn.primary { background: var(--blue); border-color: var(--blue); color: var(--on-blue); }
 .btn:disabled { opacity: .4; cursor: default; }
 .progress { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.progress .label { font-size: .88rem; color: var(--muted); }
+.btn[aria-label] { min-width: 64px; font-size: 1.2rem; padding: 8px 20px; }
 .progress .bars { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .progress .bars span { height: 6px; border-radius: 3px; background: var(--line); }
 .progress .bars span.done { background: var(--blue); }
 .progress .bars span.now { background: var(--red); }
-.keys { font-size: .82rem; color: var(--muted); width: 100%; margin: 0; }
 
 @media (max-width: 760px) {
   .cards, .cols { grid-template-columns: 1fr; }
   .row { padding: 14px 18px; }
-  .keys { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .scene, .pop { animation: none; }
@@ -165,13 +160,11 @@ body {
   <main class="stage" id="stage" tabindex="0" aria-live="polite" aria-label="Taqdimot. Davom etish uchun bosing yoki o'ng strelkani bosing."></main>
 
   <footer class="controls">
-    <button class="btn" id="prev" type="button">← Orqaga</button>
+    <button class="btn" id="prev" type="button" aria-label="Orqaga">←</button>
     <div class="progress">
-      <span class="label" id="label"></span>
       <div class="bars" id="bars"><span></span><span></span><span></span><span></span><span></span></div>
     </div>
-    <button class="btn primary" id="next" type="button">Keyingi →</button>
-    <p class="keys">Sahifani bosing yoki → / bo'shliq tugmasi bilan davom eting, ← bilan orqaga qayting.</p>
+    <button class="btn primary" id="next" type="button" aria-label="Keyingi">→</button>
   </footer>
 </div>
 
@@ -190,9 +183,7 @@ const PAIRS = [
       points: ["Do'kon yoki tashkilotdan muddatga olish", "Odatda pullik; e'lon va yozuvlarda ko'p uchraydi"],
       examples: [["한강 공원에서 자전거를 ", "대여했어요", ".", "Xan daryosi bog'ida velosiped ijaraga oldim."],
                  ["이 가게는 한복을 하루 2만 원에 ", "대여해", " 줘요.", "Bu do'kon hanbokni kuniga 20 ming vonga ijaraga beradi."]] },
-    summary: [["Tanishdan, odatda tekin", "빌리다"], ["Do'kon yoki xizmatdan, haq evaziga", "대여하다"]],
-    note: "so'zlashuvda ijara uchun ham 빌리다 deyish mumkin (자전거를 빌렸어요). 대여하다 esa rasmiyroq, e'lon va yozuvlarga xos."
-  },
+    summary: [["Tanishdan, odatda tekin", "빌리다"], ["Do'kon yoki xizmatdan, haq evaziga", "대여하다"]],  },
   {
     w1: { kr: "알다", uz: "bilmoq", tag: "Ma'lumot · fakt",
       points: ["Ism, raqam, manzil kabi faktni bilish", "Odamni tanish ham — 알다"],
@@ -202,9 +193,7 @@ const PAIRS = [
       points: ["Nega va qanday ekanini anglash", "Birovning holatini tushunish ham — 이해하다"],
       examples: [["선생님 설명을 듣고 문법을 ", "이해했어요", ".", "O'qituvchining tushuntirishini eshitib, grammatikani tushundim."],
                  ["그 마음 충분히 ", "이해해요", ".", "Ko'nglingizni to'liq tushunaman."]] },
-    summary: [["Faktni, ma'lumotni bilasiz", "알다"], ["Sabab va ma'noni anglaysiz", "이해하다"]],
-    note: "topshiriqqa \"xo'p, tushunarli\" deb javob berganda odatda 알겠습니다 deyiladi."
-  },
+    summary: [["Faktni, ma'lumotni bilasiz", "알다"], ["Sabab va ma'noni anglaysiz", "이해하다"]],  },
   {
     w1: { kr: "바뀌다", uz: "almashmoq, o'zgarmoq", tag: "Boshqasiga almashadi",
       points: ["Bir narsa boshqasi bilan almashadi (A → B)", "Grammatika: N이/가 N(으)로 바뀌다"],
@@ -214,9 +203,7 @@ const PAIRS = [
       points: ["Narsaning o'zi (xususiyati, holati) asta o'zgaradi", "Masalan: fe'l-atvor, ta'm yoki shahar qiyofasi o'zgarganda"],
       examples: [["10년 동안 고향이 많이 ", "변했어요", ".", "10 yil ichida ona shahrim ancha o'zgardi."],
                  ["그 친구는 성격이 많이 ", "변했어요", ".", "O'sha do'stimning fe'l-atvori ancha o'zgarib ketdi."]] },
-    summary: [["Biri boshqasiga almashsa (A → B)", "바뀌다"], ["Narsaning o'zi asta o'zgarsa", "변하다"]],
-    note: "우유 맛이 변했어요 — sut aynib qoldi; 라면 맛이 바뀌었어요 — ramyonning ta'mi (retsepti) yangilandi."
-  },
+    summary: [["Biri boshqasiga almashsa (A → B)", "바뀌다"], ["Narsaning o'zi asta o'zgarsa", "변하다"]],  },
   {
     w1: { kr: "고치다", uz: "tuzatmoq", tag: "Keng ma'noli",
       points: ["Buyum, xato, odat — hammasini tuzatish", "Kundalik nutqda juda ko'p ishlatiladi"],
@@ -226,17 +213,15 @@ const PAIRS = [
       points: ["Mashina, texnika, bino uchun ishlatiladi", "Ko'pincha usta yoki servis bajaradi"],
       examples: [["노트북을 서비스 센터에서 ", "수리했어요", ".", "Noutbukni servis markazida ta'mirlatdim."],
                  ["엘리베이터를 ", "수리하는", " 중입니다.", "Lift ta'mirlanmoqda."]] },
-    summary: [["Buyum, xato, odat", "고치다"], ["Texnika, bino, usta ishi", "수리하다"]],
-    note: "습관을 수리하다 deyilmaydi — odat va xato uchun faqat 고치다 ishlatiladi."
-  }
+    summary: [["Buyum, xato, odat", "고치다"], ["Texnika, bino, usta ishi", "수리하다"]],  }
 ];
 
 const SCENES = [
-  { id: "cover", name: "Juftlik", steps: 0 },
-  { id: "diff", name: "Farqi nimada?", steps: 2 },
-  { id: "examples", name: "Misollar", steps: 4 },
-  { id: "summary", name: "Eslab qoling", steps: 3 },
-  { id: "outro", name: "Obuna", steps: 0 }
+  { id: "cover", steps: 0 },
+  { id: "diff", steps: 2 },
+  { id: "examples", steps: 4 },
+  { id: "summary", steps: 2 },
+  { id: "outro", steps: 0 }
 ];
 
 const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -257,7 +242,6 @@ function sceneHTML(p, s) {
         <span class="vs pop d3">vs</span>
         <span class="w w2 pop d3">${d.w2.kr}</span>
       </div>
-      <p class="sub pop d3">Ma'nosi yaqin, lekin ishlatilishi boshqa</p>
     </section>`;
   if (id === "diff") {
     const card = (w, cls, step) => `
@@ -291,7 +275,6 @@ function sceneHTML(p, s) {
             <span class="dot"></span><span class="cond">${esc(c)}</span><span class="ans">→ ${w}</span>
           </div>`).join("")}
       </div>
-      <p class="note reveal" data-step="3"><strong>Diqqat:</strong> ${esc(d.note)}</p>
     </section>`;
   const nextLabel = p < PAIRS.length - 1
     ? `Keyingi juftlik: ${PAIRS[p + 1].w1.kr} vs ${PAIRS[p + 1].w2.kr} →`
@@ -319,9 +302,6 @@ function render() {
   document.querySelectorAll("#bars span").forEach((b, i) => {
     b.className = i < state.s ? "done" : i === state.s ? "now" : "";
   });
-  const sc = SCENES[state.s];
-  document.getElementById("label").textContent =
-    `${state.p + 1}-juftlik · ${sc.name}` + (sc.steps ? ` · ${state.k}/${sc.steps}` : "");
   const atEnd = state.p === PAIRS.length - 1 && state.s === SCENES.length - 1;
   document.getElementById("prev").disabled = state.p === 0 && state.s === 0 && state.k === 0;
   document.getElementById("next").disabled = atEnd;
