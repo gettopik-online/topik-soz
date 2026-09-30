@@ -11687,9 +11687,9 @@ async function screenMasterRank(force){
       <h2>TOPIK MASTER — reyting</h2>
       <p class="hint">20 ta test (10 회 × 듣기, 읽기). Har testdan eng yaxshi natija olinadi. Jami ball ko'p bo'lsa — yuqorida.</p>
       ${body}
-      <div class="row"><button class="btn ghost" id="reload">Yangilash</button><button class="btn ghost" id="back">Orqaga</button></div>
+      <div class="row"><button class="btn ghost" id="tmreload">Yangilash</button><button class="btn ghost" id="back">Orqaga</button></div>
     </div>`;
-  document.getElementById('reload').onclick=()=>screenMasterRank(true);
+  document.getElementById('tmreload').onclick=()=>screenMasterRank(true);
   document.getElementById('back').onclick=screenMasterHub;
 }
 async function screenMasterRound(n){
