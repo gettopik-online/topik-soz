@@ -307,7 +307,13 @@
   .wa-hideans .wa-ans{display:none}
   .wt.active{background:var(--accent);color:#fff;border-radius:3px;border-bottom-color:transparent}
   .wa-tip{position:fixed;z-index:200;background:var(--ink);color:#fff;border-radius:9px;padding:8px 12px;
-    font-size:13.5px;line-height:1.5;box-shadow:0 6px 18px rgba(0,0,0,.25);max-width:min(260px,86vw);pointer-events:none}
+    font-size:13.5px;line-height:1.5;box-shadow:0 6px 18px rgba(0,0,0,.25);max-width:min(260px,86vw)}
+  .wa-tip.wide{max-width:min(400px,92vw)}
+  .wa-sbtn{display:block;margin-top:7px;background:transparent;border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:7px;
+    padding:3px 10px;font:inherit;font-size:12.5px;cursor:pointer}
+  .wa-sent{margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,255,255,.25);color:#fff;font-size:14.5px;line-height:1.55}
+  .wa-sent.none{color:#AEB6C4;font-size:13px}
+  ::highlight(wa-sent){background-color:#FFE58F;color:#0E1320}
   .wa-tip b{display:block;font-size:15px;font-weight:800;margin-bottom:2px}
   .wa-tip span{color:#D8DEE8}
 
@@ -10235,12 +10241,104 @@ function fabShow(items){          // items: [{label, main, onclick}]
     b.textContent=it.label; if(it.main) b.className='main'; b.onclick=it.onclick; d.appendChild(b); });
   document.body.appendChild(d);
 }
-let waTipEl=null;
+/* ---- 분석하기: butun gap tarjimasi ----
+   So'z bosilganda oynada "Butun gap tarjimasi" tugmasi chiqadi. Gap chegarasi ekrandagi
+   matndan aniqlanadi (. ? ! — qo'shtirnoq ichida emas), tarjima WA_TR lug'atidan olinadi.
+   Kalit: gap matni, bosh qismidagi "1)", "①", "남자:" belgilarisiz va bo'sh joylarsiz. */
+const WA_TR = {};
+function MASTER_TR(o){ Object.assign(WA_TR, o); }
+const WA_INLINE = /^(SPAN|B|U|I|EM|STRONG|MARK|A|SUP|SUB|SMALL|FONT|RUBY|RT|S)$/;
+function waSentBlock(el){
+  let b=el.parentElement;
+  while(b && b!==document.body && (WA_INLINE.test(b.tagName) || b.classList.contains('wt'))) b=b.parentElement;
+  return b;
+}
+// blok ichidagi matn: har bir harf qaysi text node'dan kelganini eslab qoladi
+function waFlatText(block){
+  const parts=[]; let s='';
+  (function walk(n){
+    for(const c of n.childNodes){
+      if(c.nodeType===3){ parts.push({node:c, at:s.length}); s+=c.nodeValue; }
+      else if(c.nodeType===1){
+        if(c.tagName==='BR'){ s+='\n'; continue; }
+        if(c.matches('.qnum,.who,script,style,svg')) { s+='\n'; continue; }
+        if(!WA_INLINE.test(c.tagName) && !c.classList.contains('wt')) { s+='\n'; walk(c); s+='\n'; continue; }
+        walk(c);
+      }
+    }
+  })(block);
+  return {s, parts};
+}
+function waSplitSents(s){
+  const out=[]; let start=0, q=0;
+  const push=end=>{ if(end>start) out.push([start,end]); start=end; };
+  for(let i=0;i<s.length;i++){
+    const ch=s[i];
+    if(ch==='\n'){ push(i); start=i+1; q=0; continue; }
+    if(ch==='“'||ch==='‘'||ch==='「'||ch==='『') q++;
+    else if((ch==='”'||ch==='’'||ch==='」'||ch==='』') && q>0) q--;
+    else if('.?!…'.includes(ch) && q===0){
+      let j=i+1;
+      while(j<s.length && '.?!…"”’)」』'.includes(s[j])) j++;
+      if(j>=s.length || /\s/.test(s[j])){ push(j); i=j-1; }
+    }
+  }
+  push(s.length);
+  return out;
+}
+function waSentClean(t){
+  return t.replace(/^\s*(?:\(?\d+\)|[①-⑳㉠-㉭]|[가-힣]{1,4}\s*:)\s*/,'').trim();
+}
+function waSentKey(t){ return waSentClean(t).replace(/\s+/g,''); }
+// koreyscha gapmi (o'zbekcha izohlar emas)
+function waIsKoSent(t){ const ko=(t.match(/[가-힣]/g)||[]).length, la=(t.match(/[A-Za-z]/g)||[]).length; return ko>=2 && la<ko; }
+// bosilgan so'z turgan gap: {text, key, range}
+function waSentenceAt(wt){
+  const block=waSentBlock(wt); if(!block) return null;
+  const {s, parts}=waFlatText(block);
+  const first=(function f(n){ if(n.nodeType===3) return n; for(const c of n.childNodes){ const r=f(c); if(r) return r; } return null; })(wt);
+  const p=parts.find(x=>x.node===first); if(!p) return null;
+  const sp=waSplitSents(s).find(([a,b])=>p.at>=a && p.at<b); if(!sp) return null;
+  const raw=s.slice(sp[0],sp[1]);
+  const lead=raw.length-raw.trimStart().length;
+  const text=waSentClean(raw);
+  const pos=k=>{ let best=parts[0]; for(const x of parts){ if(x.at<=k) best=x; else break; }
+    return [best.node, Math.min(k-best.at, best.node.nodeValue.length)]; };
+  let range=null;
+  try{ range=document.createRange(); range.setStart(...pos(sp[0]+lead)); range.setEnd(...pos(sp[1])); }catch(e){ range=null; }
+  return {text, key:waSentKey(raw), range};
+}
+// sahifadagi barcha gaplar (tarjima tayyorlash uchun)
+function waAllSentences(root){
+  const seen=new Map();
+  for(const b of new Set([...root.querySelectorAll('.wt')].map(waSentBlock))){
+    if(!b || b.closest('.wa-ans')) continue;
+    const {s}=waFlatText(b);
+    for(const [a,e] of waSplitSents(s)){
+      const t=waSentClean(s.slice(a,e)), k=t.replace(/\s+/g,'');
+      if(waIsKoSent(t) && !seen.has(k)) seen.set(k,t);
+    }
+  }
+  return [...seen].map(([key,text])=>({key,text}));
+}
+function waHighlight(range){
+  try{
+    if(!window.CSS || !CSS.highlights) return;
+    if(range) CSS.highlights.set('wa-sent', new Highlight(range)); else CSS.highlights.delete('wa-sent');
+  }catch(e){}
+}
+let waTipEl=null, waTipWt=null;
 function waCloseTip(){
   if(waTipEl){ waTipEl.remove(); waTipEl=null; }
+  waTipWt=null; waHighlight(null);
   document.querySelectorAll('.wt.active').forEach(x=>x.classList.remove('active'));
 }
 document.addEventListener('click', (e)=>{
+  if(e.target.closest && e.target.closest('.wa-tip')){
+    e.stopPropagation();
+    if(e.target.closest('.wa-sbtn')) waShowSentence();
+    return;
+  }
   const wt = e.target.closest && e.target.closest('.wt');
   if(!wt){ waCloseTip(); return; }
   e.stopPropagation();
@@ -10250,15 +10348,35 @@ document.addEventListener('click', (e)=>{
   wt.classList.add('active');
   waTipEl = document.createElement('div');
   waTipEl.className = 'wa-tip';
-  waTipEl.innerHTML = `<b>${ssEsc(wt.dataset.base)}</b><span>${ssEsc(wt.dataset.tr)}</span>`;
+  const st0 = waSentenceAt(wt);   // o'zbekcha izohlarda tugma chiqmaydi
+  waTipEl.innerHTML = `<b>${ssEsc(wt.dataset.base)}</b><span>${ssEsc(wt.dataset.tr)}</span>`+
+    (st0 && waIsKoSent(st0.text) && !wt.closest('.wa-ans') ? `<button class="wa-sbtn" type="button">Butun gap tarjimasi ▾</button>` : '');
+  waTipWt = wt;
   document.body.appendChild(waTipEl);
-  const r = wt.getBoundingClientRect();
-  const tw = waTipEl.offsetWidth;
+  waPlaceTip();
+});
+function waPlaceTip(){
+  if(!waTipEl || !waTipWt) return;
+  const r = waTipWt.getBoundingClientRect();
+  const tw = waTipEl.offsetWidth, th = waTipEl.offsetHeight;
   let left = r.left + r.width/2 - tw/2;
   left = Math.max(6, Math.min(left, window.innerWidth - tw - 6));
   waTipEl.style.left = left+'px';
-  waTipEl.style.top = Math.max(6, r.top - waTipEl.offsetHeight - 8)+'px';
-});
+  // tepada joy bo'lmasa, so'zning pastiga chiqadi
+  waTipEl.style.top = (r.top - th - 8 >= 6 ? r.top - th - 8 : Math.min(r.bottom + 8, window.innerHeight - th - 6))+'px';
+}
+function waShowSentence(){
+  if(!waTipEl || !waTipWt) return;
+  const st = waSentenceAt(waTipWt);
+  const tr = st && WA_TR[st.key];
+  waHighlight(st && st.range);
+  const box = document.createElement('div');
+  box.className = 'wa-sent'+(tr?'':' none');
+  box.textContent = tr || "Bu gap uchun tarjima hali qo'shilmagan.";
+  const b = waTipEl.querySelector('.wa-sbtn'); if(b) b.replaceWith(box);
+  waTipEl.classList.add('wide');
+  waPlaceTip();
+}
 window.addEventListener('scroll', waCloseTip, true);
 window.addEventListener('resize', waCloseTip);
 
@@ -11589,7 +11707,7 @@ async function tmLoadRound(n){
   await tmLoadDict();   // 분석하기 lug'ati
   await Promise.all([tmLoadScript('master/listen-'+n+'.js'), tmLoadScript('master/read-'+n+'.js'),
                      tmLoadScript('master/words-listen-'+n+'.js'), tmLoadScript('master/words-read-'+n+'.js')]);
-  await Promise.all([tmLoadScript('master/exp-listen-'+n+'.js'), tmLoadScript('master/exp-read-'+n+'.js'), tmLoadScript('master/ss-'+n+'.js')]);
+  await Promise.all([tmLoadScript('master/exp-listen-'+n+'.js'), tmLoadScript('master/exp-read-'+n+'.js'), tmLoadScript('master/ss-'+n+'.js'), tmLoadScript('master/tr-'+n+'.js')]);
   TM_LOADED[n]=true;
 }
 /* ============ TOPIK MASTER: progress xaritasi ============ */
