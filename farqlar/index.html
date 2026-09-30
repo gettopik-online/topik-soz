@@ -124,7 +124,6 @@ body {
 .outro h2 { max-width: 22ch; }
 .ig { display: inline-flex; align-items: center; gap: 16px; padding: 12px 28px 12px 14px; border-radius: 999px; background: var(--surface); color: var(--fg); text-decoration: none; font-weight: 700; font-size: clamp(1.3rem, 2.8vw, 2rem); }
 .ig img { width: clamp(44px, 5vw, 60px); height: auto; display: block; }
-.next-pair { font: inherit; cursor: pointer; border: 0; background: none; color: var(--blue); font-weight: 700; font-size: 1.02rem; padding: 6px 10px; border-radius: 10px; }
 
 /* footer controls */
 .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
@@ -276,15 +275,11 @@ function sceneHTML(p, s) {
           </div>`).join("")}
       </div>
     </section>`;
-  const nextLabel = p < PAIRS.length - 1
-    ? `Keyingi juftlik: ${PAIRS[p + 1].w1.kr} vs ${PAIRS[p + 1].w2.kr} →`
-    : "Boshidan boshlash →";
   return `
     <section class="scene outro">
       <img class="mark pop" src="${LOGO}" alt="">
       <h2 class="pop d2">Foydali ma'lumotlar uchun bizga obuna bo'ling!</h2>
       <a class="ig pop d3" href="https://www.instagram.com/${HANDLE}/" target="_blank" rel="noopener"><img src="${IG}" alt="Instagram">@${HANDLE}</a>
-      <button class="next-pair pop d3" type="button" id="nextPair">${nextLabel}</button>
     </section>`;
 }
 
@@ -293,8 +288,6 @@ function render() {
   if (key !== built) {
     stage.innerHTML = sceneHTML(state.p, state.s);
     built = key;
-    const np = document.getElementById("nextPair");
-    if (np) np.addEventListener("click", e => { e.stopPropagation(); goPair((state.p + 1) % PAIRS.length); });
   }
   stage.querySelectorAll(".reveal").forEach(el => el.classList.toggle("on", +el.dataset.step <= state.k));
 
