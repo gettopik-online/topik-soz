@@ -130,6 +130,33 @@
   html.ui-dark{--card:#E9ECF1}
   html.ui-dark .wrap, html.ui-dark .fab, html.ui-dark .wa-tip, html.ui-dark .mocktoast{filter:invert(1) hue-rotate(180deg)}
   html.ui-dark .wrap img, html.ui-dark .wrap video{filter:invert(1) hue-rotate(180deg)}
+  /* ============ TOPIK MASTER xaritasi ============ */
+  .tmmap-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .tmmap{display:flex;flex-direction:column;align-items:center;gap:40px;padding:34px 0 10px}
+  .tmn{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;width:170px;
+    transform:translateX(calc(var(--k) * min(130px, 15vw)))}
+  .tmn-c{--ring:var(--line);width:78px;height:78px;border-radius:50%;border:0;padding:6px;cursor:pointer;font:inherit;
+    background:conic-gradient(var(--accent) calc(var(--p) * 1%), var(--line) 0)}
+  .tmn-c span{display:flex;width:100%;height:100%;border-radius:50%;align-items:center;justify-content:center;
+    background:var(--card);font-size:24px;font-weight:700;color:var(--muted)}
+  @media (hover:hover){ .tmn-c:hover span{color:var(--accent)} }
+  .tmn.part .tmn-c span{color:var(--ink)}
+  .tmn.cur .tmn-c span{background:#EAF3FF;color:var(--accent)}
+  .tmn.done .tmn-c{background:var(--ok)}
+  .tmn.done .tmn-c span{background:#E8F6EE;color:var(--ok);font-size:30px}
+  .tmn-l{font-weight:700;font-size:15px}
+  .tmn-tag{position:absolute;top:-26px;background:var(--accent);color:#fff;font-size:12px;font-weight:600;
+    padding:2px 10px;border-radius:8px;white-space:nowrap}
+  .tmn-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:4px}
+  .tmn-chips span{font-size:12px;line-height:1.5;padding:0 6px;border-radius:6px;border:1px solid var(--line);color:var(--muted);background:var(--card)}
+  .tmn-chips span.ok{border-color:#9ED3B5;background:#E8F6EE;color:var(--ok)}
+  .tmmap-legend{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:8px}
+  .tmmap-legend .lg{display:inline-block;width:10px;height:10px;border-radius:50%;border:2px solid var(--line);margin-right:5px;vertical-align:-1px}
+  .tmmap-legend .lg.done{background:var(--ok);border-color:var(--ok)}
+  .tmmap-legend .lg.cur{border-color:var(--accent)}
+  .tmchk{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px 16px;margin:12px 0 4px;font-size:15px;color:var(--muted)}
+  .tmchk .ok{color:var(--ok)}
+  .tmchk b{display:inline-block;width:18px}
 
   /* ============ 분석하기 (so'zma-so'z tarjima) ============ */
   /* TOPIK MASTER: bosma testlardan olingan bloklar (raw HTML) uchun uslublar */
@@ -11015,6 +11042,7 @@ async function mockRecoverPending(){
   const score=mockScoreOf(m, p.answers);
   const seconds=Math.min(p.durationSec, Math.max(0, Math.round(p.durationSec-(p.endTime-Date.now())/1000)));
   const n=mockNextAttempt(m.id);
+  mockSaveBest(m.id, score, mockMaxScore(m));
   mockClearPending();
   MOCKNOTE=`지난번 <b>${m.label}</b> 시험이 끝까지 진행되지 않아, 그때까지 선택한 답안(${answered}문항)으로 채점되었습니다. — <b>${score} / ${mockMaxScore(m)}</b> (${n}회차)`;
   delete TOPS[mockGame(m.id)]; delete TOPERR[mockGame(m.id)];
@@ -11514,7 +11542,9 @@ async function tmLoadDict(){
   await tmLoadScript('master/dict.js');
 }
 async function tmLoadWords(n){
+  if(TM_LOADED[n] || TM_LOADED['w'+n]) return;
   await Promise.all([tmLoadScript('master/words-listen-'+n+'.js'), tmLoadScript('master/words-read-'+n+'.js')]);
+  TM_LOADED['w'+n]=true;
 }
 async function tmLoadRound(n){
   if(TM_LOADED[n]) return;
@@ -11524,50 +11554,126 @@ async function tmLoadRound(n){
   await Promise.all([tmLoadScript('master/exp-listen-'+n+'.js'), tmLoadScript('master/exp-read-'+n+'.js'), tmLoadScript('master/ss-'+n+'.js')]);
   TM_LOADED[n]=true;
 }
+/* ============ TOPIK MASTER: progress xaritasi ============ */
+// eng yaxshi ball o'quvchi brauzerida saqlanadi (xarita uchun)
+function mockSaveBest(mockId, score, max){
+  const u=U(); if(!u) return;
+  if(!u.mockBest2) u.mockBest2={};
+  const p=u.mockBest2[mockId];
+  if(!p || score>p.s) u.mockBest2[mockId]={s:score, max:max};
+  save();
+}
+function tmWordProg(n){
+  let done=0, total=0; const stats=(U()||{}).stats||{};
+  for(const t of ['듣기','읽기']){
+    const sec=tmWordsSec(n,t); if(!sec) continue;
+    const s=sec.sets[0], st=stats[s.uid]||{}, rs=rounds(s);
+    total+=rs.length;
+    done+=rs.filter(r=>r.every(w=>st[w.ko]!==undefined)).length;
+  }
+  return {done,total};
+}
+// 회 yashil bo'lishi uchun: 듣기 + 읽기 testi, 쓰기 (ustozga yuborilgan) va barcha so'z raundlari
+function tmProgress(n){
+  const u=U()||{}, best=u.mockBest2||{};
+  const test=id=>{ const b=best[id]; return {c:mockAttemptCount(id), best:b?b.s:null}; };
+  const L=test('tm-listen-'+n), R=test('tm-read-'+n);
+  const st=(u.sseogiSets||{})['tm-ss-'+n];
+  const S={done:!!(st&&st.submitted), started:!!(st&&(st.a51done||st.a52done||st.a53done||st.submitted))};
+  const W=tmWordProg(n);
+  const parts=[L.c>0, R.c>0, S.done, W.total>0 && W.done===W.total];
+  return {L, R, S, W, parts,
+    done:parts.every(Boolean),
+    started:L.c>0 || R.c>0 || S.started || W.done>0,
+    count:parts.filter(Boolean).length};
+}
+function tmChips(p){
+  const chip=(ok,txt)=>`<span class="${ok?'ok':''}">${txt}</span>`;
+  const t=(x,k)=>chip(x.c>0, k+(x.c>0?(x.best!=null?' '+x.best:' ✓'):''));
+  return t(p.L,'듣')+t(p.R,'읽')+chip(p.S.done,'쓰'+(p.S.done?' ✓':''))+
+    chip(p.W.total>0&&p.W.done===p.W.total, '단어 '+p.W.done+'/'+p.W.total);
+}
+// 회 ichida: nima qilingan, nima qolgan
+function tmChecklist(n){
+  const p=tmProgress(n);
+  const it=(ok,txt)=>`<div class="${ok?'ok':''}"><b>${ok?'✓':'○'}</b> ${txt}</div>`;
+  return `<div class="tmchk">
+    ${it(p.parts[0], '듣기 testi'+(p.L.best!=null?' — eng yaxshi: '+p.L.best:''))}
+    ${it(p.parts[1], '읽기 testi'+(p.R.best!=null?' — eng yaxshi: '+p.R.best:''))}
+    ${it(p.parts[2], '쓰기 — ustozga yuborilgan')}
+    ${it(p.parts[3], "So'zlar — "+p.W.done+' / '+p.W.total+' raund')}
+  </div>`;
+}
+async function tmLoadAllWords(){ await Promise.all(TM_ROUNDS.map(n=>tmLoadWords(n))); }
 function screenMasterHub(){
   whoBar(0);
+  app.innerHTML=`<div class="card" id="tmhubload"><h2>TOPIK MASTER</h2><p class="hint">Yuklanmoqda…</p></div>`;
+  tmLoadAllWords().then(()=>{ if(document.getElementById('tmhubload')) tmRenderHub(); });
+}
+function tmRenderHub(){
+  const u=U()||{};
+  const P=TM_ROUNDS.map(n=>tmProgress(n));
+  const doneN=P.filter(p=>p.done).length;
+  const pct=Math.round(P.reduce((a,p)=>a+p.count,0)/(TM_ROUNDS.length*4)*100);
+  // "Davom ettirish": oxirgi ochilgan 회, bo'lmasa birinchi boshlangan, bo'lmasa birinchi yangi
+  let cur=TM_ROUNDS.indexOf(u.tmLast);
+  if(cur<0 || P[cur].done) cur=P.findIndex(p=>p.started && !p.done);
+  if(cur<0) cur=P.findIndex(p=>!p.done);
+  const K=[0,.75,1,.75,0,-.75,-1,-.75];
   app.innerHTML=`
     <div class="card">
-      <h2>TOPIK MASTER</h2>
-      <p class="hint">실전 모의고사 10회 · 듣기 / 쓰기 / 읽기. 회차를 선택하세요.</p>
-      <div class="sets" style="margin-top:12px">
-        ${TM_ROUNDS.map(n=>`<button class="set" data-tm="${n}">
-          <div class="n" style="font-size:24px">제${n}회</div>
-          <div class="m">듣기 · 읽기 · 쓰기</div>
-        </button>`).join('')}
+      <div class="tmmap-head"><h2 style="margin:0">TOPIK MASTER</h2><span class="hint">${doneN} / ${TM_ROUNDS.length} 회 tugatildi</span></div>
+      <div class="prog" style="margin:10px 0 6px"><i style="width:${pct}%;background:var(--ok)"></i></div>
+      <p class="hint">회 yashil bo'lishi uchun: 듣기 va 읽기 testlari, 쓰기 (ustozga yuborilgan) va barcha so'z raundlari.</p>
+      <div class="tmmap">
+        ${TM_ROUNDS.map((n,i)=>{ const p=P[i];
+          const cls=p.done?'done':(i===cur?'cur':(p.started?'part':''));
+          return `<div class="tmn ${cls}" style="--k:${K[i%K.length]}">
+            ${i===cur?'<div class="tmn-tag">Davom ettirish</div>':''}
+            <button class="tmn-c" data-tm="${n}" style="--p:${p.count*25}" aria-label="제${n}회">
+              <span>${p.done?'✓':n}</span></button>
+            <div class="tmn-l">제${n}회</div>
+            <div class="tmn-chips">${tmChips(p)}</div>
+          </div>`; }).join('')}
       </div>
+      <div class="tmmap-legend"><span><i class="lg done"></i>tugatildi</span><span><i class="lg cur"></i>davom etmoqda</span><span><i class="lg"></i>boshlanmagan</span></div>
       <div class="row"><button class="btn ghost" id="back">Orqaga</button></div>
     </div>`;
   app.querySelectorAll('[data-tm]').forEach(b=>b.onclick=()=>screenMasterRound(+b.dataset.tm));
   document.getElementById('back').onclick=screenTypes;
+  const c=app.querySelector('.tmn.cur'); if(c && cur>2) c.scrollIntoView({block:'center'});
 }
 async function screenMasterRound(n){
   whoBar(0);
   const round='제'+n+'회';
   app.innerHTML=`<div class="card"><h2>TOPIK MASTER ${round}</h2><p class="hint">불러오는 중…</p></div>`;
   await tmLoadRound(n);
+  { const u=U(); if(u && u.tmLast!==n){ u.tmLast=n; save(); } }
   const card=t=>{
     if(t==='쓰기'){
       const ss=SSSETS.find(x=>x.id==='tm-ss-'+n);
       if(!ss) return `<button class="set" disabled style="opacity:.45"><div class="n" style="font-size:22px">쓰기</div><div class="m">준비 중</div></button>`;
       return `<button class="set" data-ssw="${ss.id}"><div class="n" style="font-size:22px">쓰기</div>
-        <div class="m">51 · 52 · 53 · 54 · 원고지 · ustozga PDF</div></button>`;
+        <div class="m">51 · 52 · 53 · 54 · 원고지 · ustozga PDF</div>
+        <div class="m" style="color:${tmProgress(n).S.done?'var(--ok)':'var(--muted)'}">${tmProgress(n).S.done?'ustozga yuborilgan ✓':(tmProgress(n).S.started?'davom etilmoqda':'boshlanmagan')}</div></button>`;
     }
     const m=mockOf(round,t,'master');
     if(!m) return `<button class="set" disabled style="opacity:.45">
       <div class="n" style="font-size:22px">${t}</div>
       <div class="m">준비 중</div></button>`;
     const c=mockAttemptCount(m.id);
+    const bs=((U()||{}).mockBest2||{})[m.id];
     return `<button class="set" data-m="${m.id}" data-t="${t}">
       <div class="n" style="font-size:22px">${t}</div>
       <div class="m">${m.note?m.note+' · ':''}${mockTotalCount(m)}문항 · ${Math.floor(m.durationSec/60)}분</div>
-      <div class="m" style="color:${c?'var(--accent)':'var(--muted)'}">${c?c+'번 응시함':'아직 응시하지 않음'}</div>
+      <div class="m" style="color:${c?'var(--accent)':'var(--muted)'}">${c?c+'번 응시함'+(bs?' · 최고 '+bs.s+'점':''):'아직 응시하지 않음'}</div>
     </button>`;
   };
   app.innerHTML=`
     <div class="card">
       <h2>TOPIK MASTER ${round}</h2>
       <p class="hint">영역을 선택하세요. 시작하면 타이머가 작동합니다.</p>
+      ${tmChecklist(n)}
       <div class="sets" style="margin-top:12px">${MOCKTYPES.map(card).join('')}</div>
       <div class="row"><button class="btn ghost" id="back">Orqaga</button></div>
     </div>`;
@@ -11920,6 +12026,7 @@ async function finishMock(){
   window.scrollTo(0,0);
   app.innerHTML='<div class="card"><h2>채점 중...</h2></div>';
   const n=mockNextAttempt(m.id);
+  mockSaveBest(m.id, score, mockMaxScore(m));
   mockClearPending();
   const g=mockGame(m.id);
   delete TOPS[g]; delete TOPERR[g];
