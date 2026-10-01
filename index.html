@@ -11266,7 +11266,12 @@ function wtRec(){ const u=U(); return (u&&u.wt&&u.wt[WT.id])||null; }
 
 /* ---- ustoz kaliti (har test o'z holatini alohida saqlaydi) ---- */
 let WTGATES = {};   // {[testId]: {open, until} | null (bog'lanmadi) | undefined}
+// Server yozuvni qabul qilmay qolganda: test sayt kodining o'zida vaqtinchalik ochiladi
+// {testId: 'yopilish vaqti (UTC)'}
+const WT_FORCE_OPEN = { 'tw-listen-2':'2026-10-01T12:00:00Z' };
 async function wtLoadGate(){
+  const fo=WT_FORCE_OPEN[WT.id] && Date.parse(WT_FORCE_OPEN[WT.id]);
+  if(fo && Date.now()<fo){ WTGATES[WT.id]={open:true, until:fo}; return WTGATES[WT.id]; }
   try{
     const r=await fetch(API+'/top?game='+encodeURIComponent(wtGateGame())+'&cb='+Date.now());
     const d=await r.json();
@@ -11279,9 +11284,10 @@ async function wtLoadGate(){
 }
 async function wtSetGate(minutes){
   try{
-    await fetch(API+'/score',{method:'POST',headers:{'Content-Type':'application/json'},
+    const r=await fetch(API+'/score',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({game:wtGateGame(), name:'GATE', ok:Math.max(0,Math.round(minutes)), done:1})});
-  }catch(e){}
+    if(!r.ok) alert("Server ruxsatni saqlamadi (xato "+r.status+"). Test ochilmadi — server tiklanguncha kuting yoki dasturchiga ayting.");
+  }catch(e){ alert("Serverga ulanib bo'lmadi. Internetni tekshiring."); }
   WTGATES[WT.id]=undefined;
   await wtLoadGate();
 }
