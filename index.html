@@ -11268,9 +11268,11 @@ function wtRec(){ const u=U(); return (u&&u.wt&&u.wt[WT.id])||null; }
 let WTGATES = {};   // {[testId]: {open, until} | null (bog'lanmadi) | undefined}
 // Server yozuvni qabul qilmay qolganda: test sayt kodining o'zida vaqtinchalik ochiladi
 // {testId: 'yopilish vaqti (UTC)'}
-const WT_FORCE_OPEN = { 'tw-listen-2':'2026-10-01T12:00:00Z' };
+// '*' — barcha so'z testlari (ustoz so'rovi bilan, 2026-10-01)
+const WT_FORCE_OPEN = { '*':'2026-10-01T12:00:00Z' };
 async function wtLoadGate(){
-  const fo=WT_FORCE_OPEN[WT.id] && Date.parse(WT_FORCE_OPEN[WT.id]);
+  const fv=WT_FORCE_OPEN[WT.id] || WT_FORCE_OPEN['*'];
+  const fo=fv && Date.parse(fv);
   if(fo && Date.now()<fo){ WTGATES[WT.id]={open:true, until:fo}; return WTGATES[WT.id]; }
   try{
     const r=await fetch(API+'/top?game='+encodeURIComponent(wtGateGame())+'&cb='+Date.now());
