@@ -314,6 +314,8 @@
   .wa-sent{margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,255,255,.25);color:#fff;font-size:14.5px;line-height:1.55}
   .wa-sent.none{color:#AEB6C4;font-size:13px}
   ::highlight(wa-sent){background-color:#FFE58F;color:#0E1320}
+  .wa-tip .wa-only{font-size:15px;line-height:1.6;color:#fff}
+  .wa-tip .wa-only.none{color:#AEB6C4;font-size:13.5px}
   .wa-tip b{display:block;font-size:15px;font-weight:800;margin-bottom:2px}
   .wa-tip span{color:#D8DEE8}
 
@@ -867,6 +869,7 @@ function screenRanking(){
 
 function whoBar(level){
   uiMode('inner');
+  WA_ACTIVE=false; if(typeof waCloseTip==='function') waCloseTip();
   if(typeof fabClear==='function') fabClear();   // level: 0=tur tanlash, 1=bo'limlar, 2=variantlar/ichkari
   whoEl.innerHTML=`<span>O'quvchi: <b>${DB.current}</b></span>
     <button class="link" id="navtype">Bosh sahifa</button>
@@ -926,7 +929,7 @@ function screenTypes(){
         </button>
         <button class="set" data-wahub="1">
           <div class="n" style="font-size:22px">분석하기</div>
-          <div class="m">${WA_ITEMS.length} ta matn · so'zni bosing, tarjimasi chiqadi</div>
+          <div class="m">${WA_ITEMS.length} ta matn · gapni bosing, tarjimasi chiqadi</div>
         </button>
       </div>
     </div>
@@ -10198,8 +10201,10 @@ function waWrapWord(word){
   if(!hit) return word;
   return `<span class="wt" data-base="${ssEsc(hit[0])}" data-tr="${ssEsc(hit[1])}">${word}</span>`;
 }
+// So'z tarjimasi yoqilgan; lug'at faqat 분석하기 ochilganda yuklanadi (testlar uni kutmaydi)
+const WA_WORDS=true;
 function waWrap(text){
-  if(text==null) return text;
+  if(text==null || !WA_WORDS) return text;
   return String(text).replace(/(<[^>]+>)|([\uac00-\ud7a3]+)/g, (m, tag, word) => tag ? tag : waWrapWord(word));
 }
 function waWrapHtml(html){
@@ -10214,7 +10219,7 @@ function waWrapContent(c){
 // Ekran chizilgandan keyin: hali o'ralmagan koreyscha matn (ko'rsatmalar, savol matnlari,
 // 남자/여자 belgilari, izohlardagi iqtiboslar) ham so'zma-so'z bosiladigan bo'ladi.
 function waWrapDom(root){
-  if(!root) return;
+  if(!root || !WA_WORDS) return;
   const walker=document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const nodes=[]; let n;
   while((n=walker.nextNode())){
@@ -10300,13 +10305,14 @@ function waSentClean(t){
 function waSentKey(t){ return waSentClean(t).replace(/\s+/g,''); }
 // koreyscha gapmi (o'zbekcha izohlar emas)
 function waIsKoSent(t){ const ko=(t.match(/[가-힣]/g)||[]).length, la=(t.match(/[A-Za-z]/g)||[]).length; return ko>=2 && la<ko; }
-// bosilgan so'z turgan gap: {text, key, range}
-function waSentenceAt(wt){
-  const block=waSentBlock(wt); if(!block) return null;
+// matndagi nuqta (text node + harf o'rni) turgan gap: {text, key, range}
+function waSentenceAtText(node, off){
+  if(!node || node.nodeType!==3) return null;
+  const block=waSentBlock(node); if(!block) return null;
   const {s, parts}=waFlatText(block);
-  const first=(function f(n){ if(n.nodeType===3) return n; for(const c of n.childNodes){ const r=f(c); if(r) return r; } return null; })(wt);
-  const p=parts.find(x=>x.node===first); if(!p) return null;
-  const sp=waSplitSents(s).find(([a,b])=>p.at>=a && p.at<b); if(!sp) return null;
+  const p=parts.find(x=>x.node===node); if(!p) return null;
+  const at=p.at+Math.max(0, Math.min(off, node.nodeValue.length-1));
+  const sp=waSplitSents(s).find(([a,b])=>at>=a && at<b); if(!sp) return null;
   const raw=s.slice(sp[0],sp[1]);
   const lead=raw.length-raw.trimStart().length;
   const text=waSentClean(raw);
@@ -10316,10 +10322,17 @@ function waSentenceAt(wt){
   try{ range=document.createRange(); range.setStart(...pos(sp[0]+lead)); range.setEnd(...pos(sp[1])); }catch(e){ range=null; }
   return {text, key:waSentKey(raw), range};
 }
-// sahifadagi barcha gaplar (tarjima tayyorlash uchun)
+// bosiladigan koreyscha matn (sarlavha, tugma, o'zbekcha izoh va h.k. emas)
+const WA_SKIP='button,a,input,textarea,select,h2,.wa-ans,.fab,.qnum,.who,svg,script,style';
+function waTextNodes(root){
+  const out=[], w=document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n;
+  while((n=w.nextNode())) if(/[가-힣]/.test(n.nodeValue) && n.parentElement && !n.parentElement.closest(WA_SKIP)) out.push(n);
+  return out;
+}
+// sahifadagi barcha gaplar (tarjima tayyorlash va tekshirish uchun)
 function waAllSentences(root){
   const seen=new Map();
-  for(const b of new Set([...root.querySelectorAll('.wt')].map(waSentBlock))){
+  for(const b of new Set(waTextNodes(root).map(waSentBlock))){
     if(!b || b.closest('.wa-ans')) continue;
     const {s}=waFlatText(b);
     for(const [a,e] of waSplitSents(s)){
@@ -10335,11 +10348,19 @@ function waHighlight(range){
     if(range) CSS.highlights.set('wa-sent', new Highlight(range)); else CSS.highlights.delete('wa-sent');
   }catch(e){}
 }
-let waTipEl=null, waTipWt=null;
+// 분석하기: so'z bosilsa — so'z tarjimasi + "Gap tarjimasi" tugmasi;
+// tugma bosilsa — so'z tarjimasi o'rnida faqat gap tarjimasi qoladi, gap sariq belgilanadi.
+var WA_ACTIVE=false;            // 분석하기 ekranlarida true (whoBar har ekranda false qiladi)
+var waTipEl=null, waTipWt=null;
 function waCloseTip(){
   if(waTipEl){ waTipEl.remove(); waTipEl=null; }
   waTipWt=null; waHighlight(null);
   document.querySelectorAll('.wt.active').forEach(x=>x.classList.remove('active'));
+}
+// so'z turgan gap
+function waSentenceAt(wt){
+  const w=document.createTreeWalker(wt, NodeFilter.SHOW_TEXT);
+  return waSentenceAtText(w.nextNode(), 0);
 }
 document.addEventListener('click', (e)=>{
   if(e.target.closest && e.target.closest('.wa-tip')){
@@ -10358,7 +10379,7 @@ document.addEventListener('click', (e)=>{
   waTipEl.className = 'wa-tip';
   const st0 = waSentenceAt(wt);   // o'zbekcha izohlarda tugma chiqmaydi
   waTipEl.innerHTML = `<b>${ssEsc(wt.dataset.base)}</b><span>${ssEsc(wt.dataset.tr)}</span>`+
-    (st0 && waIsKoSent(st0.text) && !wt.closest('.wa-ans') ? `<button class="wa-sbtn" type="button">Butun gap tarjimasi ▾</button>` : '');
+    (st0 && waIsKoSent(st0.text) && !wt.closest('.wa-ans') ? `<button class="wa-sbtn" type="button">Gap tarjimasi ▾</button>` : '');
   waTipWt = wt;
   document.body.appendChild(waTipEl);
   waPlaceTip();
@@ -10373,15 +10394,17 @@ function waPlaceTip(){
   // tepada joy bo'lmasa, so'zning pastiga chiqadi
   waTipEl.style.top = (r.top - th - 8 >= 6 ? r.top - th - 8 : Math.min(r.bottom + 8, window.innerHeight - th - 6))+'px';
 }
+// so'z tarjimasi olib tashlanadi — oynada faqat gap tarjimasi qoladi
 function waShowSentence(){
   if(!waTipEl || !waTipWt) return;
   const st = waSentenceAt(waTipWt);
   const tr = st && WA_TR[st.key];
   waHighlight(st && st.range);
+  waTipWt.classList.remove('active');
   const box = document.createElement('div');
-  box.className = 'wa-sent'+(tr?'':' none');
+  box.className = 'wa-only'+(tr?'':' none');
   box.textContent = tr || "Bu gap uchun tarjima hali qo'shilmagan.";
-  const b = waTipEl.querySelector('.wa-sbtn'); if(b) b.replaceWith(box);
+  waTipEl.replaceChildren(box);
   waTipEl.classList.add('wide');
   waPlaceTip();
 }
@@ -10997,7 +11020,7 @@ function waScreenHub(){
   whoBar(1);
   app.innerHTML = `<div class="card">
     <h2>분석하기</h2>
-    <p class="hint">Matnni o'qing, koreyscha so'zni bosing — tarjimasi tepasida chiqadi.</p>
+    <p class="hint">Matnni o'qing. Tushunmagan gapni bosing — tarjimasi chiqadi.</p>
     <div class="sets" style="margin-top:12px">
       ${WA_ITEMS.map(it=>`<button class="set" data-waid="${it.id}">
         <div class="n" style="font-size:19px">${ssEsc(it.title)}</div>
@@ -11012,7 +11035,7 @@ function waScreenHub(){
     <div class="sets" style="margin-top:12px">
       ${TM_ROUNDS.map(n=>['듣기','읽기'].map(t=>`<button class="set" data-tmwa="${n}-${t}">
         <div class="n" style="font-size:19px">TOPIK MASTER 제${n}회 ${t}</div>
-        <div class="m">1~50번 · so'zni bosing, tarjimasi chiqadi</div>
+        <div class="m">1~50번 · gapni bosing, tarjimasi chiqadi</div>
       </button>`).join('')).join('')}
     </div>
   </div>`;
@@ -11020,7 +11043,7 @@ function waScreenHub(){
   app.querySelectorAll('[data-tmwa]').forEach(b=>b.onclick=async()=>{
     const [n,t]=b.dataset.tmwa.split('-');
     b.querySelector('.m').textContent='불러오는 중…';
-    await tmLoadRound(+n);
+    await Promise.all([tmLoadRound(+n), tmLoadDict()]);
     waScreenAnsTest('tm-'+(t==='듣기'?'listen':'read')+'-'+n, waScreenHub);
   });
   app.querySelectorAll('[data-waid]').forEach(b=>b.onclick=async()=>{
@@ -11038,6 +11061,7 @@ function waScriptHTML(script){
 }
 function waScreenListen(id){
   whoBar(1);
+  WA_ACTIVE=true;
   const m = MOCKS.find(x=>x.id===id);
   const groupsHtml = m.groups.map(g=>{
     let parts = `<div class="card"><p class="ins">${ssEsc(g.instruction)}</p>`;
@@ -11052,7 +11076,7 @@ function waScreenListen(id){
   }).join('');
   app.innerHTML = `<div class="card">
       <h2>${ssEsc(m.label)} — 분석하기 (대본)</h2>
-      <p class="hint">Har qanday koreyscha so'zni bosing, tarjimasi ustida chiqadi.</p>
+      <p class="hint">Tushunmagan gapni bosing — gap belgilanadi va tarjimasi chiqadi.</p>
       <div class="row" style="margin-top:10px"><button class="btn ghost" id="wareadback">분석하기 ro'yxatiga qaytish</button></div>
     </div>` + groupsHtml + waBackCard();
   const goBack=waScreenHub;
@@ -11074,6 +11098,7 @@ function waHasAnswers(m){ return !!m && m.groups.some(g=>g.questions.some(q=>typ
 // WA_TESTS testi: savol + (대본) + to'g'ri javob + izoh bitta joyda (통합)
 function waScreenAnsTest(id, back){
   whoBar(1);
+  WA_ACTIVE=true;
   const m = WA_TESTS.find(x=>x.id===id) || MOCKS.find(x=>x.id===id);
   const isListen = m.type==='listen' || m.testType==='듣기';
   const hasExp = m.groups.some(g=>g.questions.some(q=>q.explain));
@@ -11092,7 +11117,7 @@ function waScreenAnsTest(id, back){
   </div>`).join('');
   app.innerHTML = `<div class="card">
       <h2>${ssEsc(m.label)} — 분석하기 (${hasExp?(isListen?'대본 + 정답':'정답 + 해설'):'정답'})</h2>
-      <p class="hint">Har qanday koreyscha so'zni bosing, tarjimasi ustida chiqadi. O'zingizni tekshirish uchun javoblarni yashirib qo'yishingiz mumkin.</p>
+      <p class="hint">Tushunmagan gapni bosing — gap belgilanadi va tarjimasi chiqadi. O'zingizni tekshirish uchun javoblarni yashirib qo'yishingiz mumkin.</p>
       <div class="row" style="margin-top:10px">
         <button class="btn" id="wahideans">Javoblarni yashirish</button>
         <button class="btn ghost" id="wareadback">${back?'Orqaga':"분석하기 ro'yxatiga qaytish"}</button>
@@ -11113,6 +11138,7 @@ function waScreenAnsTest(id, back){
 }
 function waScreenRead(id){
   whoBar(1);
+  WA_ACTIVE=true;
   const m = WA_TESTS.find(x=>x.id===id) || MOCKS.find(x=>x.id===id);
   const groupsHtml = m.groups.map(g=>{
     const wg = {
@@ -11127,7 +11153,7 @@ function waScreenRead(id){
   }).join('');
   app.innerHTML = `<div class="card">
       <h2>${ssEsc(m.label)} — 분석하기</h2>
-      <p class="hint">Har qanday koreyscha so'zni bosing, tarjimasi ustida chiqadi.</p>
+      <p class="hint">Tushunmagan gapni bosing — gap belgilanadi va tarjimasi chiqadi.</p>
       <div class="row" style="margin-top:10px"><button class="btn ghost" id="wareadback">분석하기 ro'yxatiga qaytish</button></div>
     </div>` + groupsHtml + waBackCard();
   const goBack=waScreenHub;
@@ -11710,15 +11736,16 @@ function MASTER_FROM_WA(o){
   MASTER_ADD({ id:o.id, coll:'master', round:o.round, testType:o.testType,
     label:o.label, durationSec:o.durationSec, note:o.note, audio:o.audio, groups });
 }
-function tmLoadScript(src){
+function tmLoadScript(src, ordered){
   return new Promise(res=>{
     const s=document.createElement('script'); s.src=src;
+    if(ordered) s.async=false;     // parallel yuklanadi, qo'shilgan tartibda bajariladi
     s.onload=()=>res(true); s.onerror=()=>res(false);
     document.head.appendChild(s);
   });
 }
 async function tmLoadDict(){
-  if(TM_LOADED.dict) return;
+  if(TM_LOADED.dict || !WA_WORDS) return;       // so'z tarjimasi o'chiq — lug'at kerak emas
   TM_LOADED.dict=true;
   await tmLoadScript('master/dict.js');
 }
@@ -11729,10 +11756,9 @@ async function tmLoadWords(n){
 }
 async function tmLoadRound(n){
   if(TM_LOADED[n]) return;
-  await tmLoadDict();   // 분석하기 lug'ati
-  await Promise.all([tmLoadScript('master/listen-'+n+'.js'), tmLoadScript('master/read-'+n+'.js'),
-                     tmLoadScript('master/words-listen-'+n+'.js'), tmLoadScript('master/words-read-'+n+'.js')]);
-  await Promise.all([tmLoadScript('master/exp-listen-'+n+'.js'), tmLoadScript('master/exp-read-'+n+'.js'), tmLoadScript('master/ss-'+n+'.js'), tmLoadScript('master/tr-'+n+'.js')]);
+  // hammasi bir vaqtda yuklanadi, lekin shu tartibda ishga tushadi (exp-* testlardan keyin)
+  await Promise.all(['listen-'+n, 'read-'+n, 'words-listen-'+n, 'words-read-'+n,
+                     'exp-listen-'+n, 'exp-read-'+n, 'ss-'+n, 'tr-'+n].map(f=>tmLoadScript('master/'+f+'.js', true)));
   TM_LOADED[n]=true;
 }
 /* ============ TOPIK MASTER: progress xaritasi ============ */
@@ -11933,13 +11959,14 @@ async function screenMasterSkill(n, type){
       '<div class="sets" style="margin-top:12px">'+
         btn('test','시험 보기', m?(mockTotalCount(m)+'문항 · '+Math.floor(m.durationSec/60)+'분 · '+(mockAttemptCount(m.id)?mockAttemptCount(m.id)+'번 응시함':'아직 응시하지 않음')):'', !!m)+
         btn('words','단어 외우기', wordInfo, !!sec)+
-        btn('anal','분석하기', m?(hasExp?"대본/해설 + 정답 · so'zni bosing":"정답 · so'zni bosing, tarjimasi chiqadi"):'', !!m)+
+        btn('anal','분석하기', m?(hasExp?"대본/해설 + 정답 · gap tarjimasi":"정답 · gapni bosing, tarjimasi chiqadi"):'', !!m)+
       '</div>'+
       '<div class="row"><button class="btn ghost" id="back">Orqaga</button></div>'+
     '</div>';
   const t=app.querySelector('[data-go="test"]'); if(t) t.onclick=()=>screenMockIntro(m.id);
   const w=app.querySelector('[data-go="words"]'); if(w) w.onclick=()=>screenMasterWords(n, type);
-  const an=app.querySelector('[data-go="anal"]'); if(an) an.onclick=()=>waScreenAnsTest(m.id, ()=>screenMasterSkill(n, type));
+  const an=app.querySelector('[data-go="anal"]');
+  if(an) an.onclick=async()=>{ const d=an.querySelector('.m'); if(d) d.textContent='불러오는 중…'; await tmLoadDict(); waScreenAnsTest(m.id, ()=>screenMasterSkill(n, type)); };
   document.getElementById('back').onclick=()=>screenMasterRound(n);
 }
 
