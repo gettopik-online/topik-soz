@@ -680,16 +680,24 @@ function gSec(id){ return GAME+'-s-'+id; }
 
 async function post(game, ok, done){
   try{
-    await fetch(API+'/score',{method:'POST',headers:{'Content-Type':'application/json'},
+    const r=await fetch(API+'/score',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({game,name:DB.current,ok,done})});
-  }catch(e){ /* internet yo'q — natija telefonda saqlanib turaveradi */ }
+    return r.ok;
+  }catch(e){ return false; /* internet yo'q — natija telefonda saqlanib turaveradi */ }
 }
+// Server kuniga cheklangan miqdorda yozuv qabul qiladi: faqat O'ZGARGAN natijalar yuboriladi
+// (oldin har raundda barcha bo'limlar — 30+ yozuv — yuborilardi).
 async function pushScore(){
-  const t=userScore(DB.current);
-  const jobs=[ post(gTotal(), t.ok, t.done) ];
-  TYPES.forEach(x=>{ const s=userScore(DB.current,{type:x.id}); jobs.push(post(gType(x.id), s.ok, s.done)); });
-  SECTIONS.forEach(sec=>{ const s=userScore(DB.current,{sec:sec.id}); jobs.push(post(gSec(sec.id), s.ok, s.done)); });
+  const u=U(); if(!u) return;
+  if(!u.posted) u.posted={};
+  const want=[[gTotal(), userScore(DB.current)]];
+  TYPES.forEach(x=>want.push([gType(x.id), userScore(DB.current,{type:x.id})]));
+  SECTIONS.forEach(sec=>want.push([gSec(sec.id), userScore(DB.current,{sec:sec.id})]));
+  const jobs=want.filter(([g,s])=>s.done>0 && u.posted[g]!==s.ok+'/'+s.done).map(async([g,s])=>{
+    if(await post(g, s.ok, s.done)) u.posted[g]=s.ok+'/'+s.done;
+  });
   await Promise.all(jobs);
+  save();
 }
 async function fetchTop(game){
   try{
