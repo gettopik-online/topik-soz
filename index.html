@@ -10976,6 +10976,15 @@ const WA_ITEMS = [
   { id:'master-listen1', type:'listen', title:"TOPIK II 듣기 제1회 1~50 분석하기 (대본 + 정답)", hint:"실전 모의고사 제1회 — savol, 대본, to'g'ri javob va izoh bir joyda" },
   { id:'master-read2', type:'read', title:"TOPIK II 읽기 제2회 1~50 분석하기 (정답 + 해설)", hint:"실전 모의고사 제2회 — matn, to'g'ri javob va izoh bir joyda" }
 ];
+// 분석하기 matnlari uchun gap tarjimalari fayli (master-read1/listen1 = TOPIK MASTER 제1회 bilan bir xil)
+const WA_TR_FILE = { 'master-read1':'master/tr-1.js', 'master-listen1':'master/tr-1.js' };
+const WA_TR_LOADED = {};
+async function waLoadTr(id){
+  const f=WA_TR_FILE[id] || 'master/tr-'+id+'.js';
+  if(WA_TR_LOADED[f] || /tr-(\d+)\.js$/.test(f) && TM_LOADED[+RegExp.$1]) return;
+  WA_TR_LOADED[f]=true;
+  await tmLoadScript(f);
+}
 function waScreenHub(){
   whoBar(1);
   app.innerHTML = `<div class="card">
@@ -11009,7 +11018,7 @@ function waScreenHub(){
   app.querySelectorAll('[data-waid]').forEach(b=>b.onclick=async()=>{
     const item=WA_ITEMS.find(x=>x.id===b.dataset.waid);
     b.querySelector('.m').textContent='불러오는 중…';
-    await tmLoadDict();
+    await Promise.all([tmLoadDict(), waLoadTr(item.id)]);
     const wt = WA_TESTS.find(x=>x.id===item.id);
     if(waHasAnswers(wt)) waScreenAnsTest(item.id);
     else if(item.type==='listen') waScreenListen(item.id);
