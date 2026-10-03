@@ -11311,8 +11311,8 @@ function wtRec(){ const u=U(); return (u&&u.wt&&u.wt[WT.id])||null; }
 let WTGATES = {};   // {[testId]: {open, until} | null (bog'lanmadi) | undefined}
 // Server yozuvni qabul qilmay qolganda: test sayt kodining o'zida vaqtinchalik ochiladi
 // {testId: 'yopilish vaqti (UTC)'}
-// '*' — barcha so'z testlari (ustoz so'rovi bilan, 2026-10-03, 23:59 Toshkent gacha)
-const WT_FORCE_OPEN = { '*':'2026-10-03T18:59:00Z' };
+// '*' — barcha so'z testlari muddatsiz ochiq (ustoz so'rovi bilan, 2026-10-03)
+const WT_FORCE_OPEN = { '*':'2100-01-01T00:00:00Z' };
 async function wtLoadGate(){
   const fv=WT_FORCE_OPEN[WT.id] || WT_FORCE_OPEN['*'];
   const fo=fv && Date.parse(fv);
@@ -11412,7 +11412,7 @@ function wtRenderGate(hasPending){
     const qoldi=Math.max(0,Math.round((gate.until-Date.now())/60000));
     box.innerHTML=`<div class="wtlock" style="background:#EAF7EE;border-color:var(--ok)">
         <b style="color:var(--ok)">✓ Test ochiq</b>
-        <p class="hint" style="margin-top:6px">Yopilishiga ~${qoldi} daqiqa qoldi.</p></div>
+        <p class="hint" style="margin-top:6px">${qoldi>60*24*365?"Test doim ochiq.":"Yopilishiga ~"+qoldi+" daqiqa qoldi."}</p></div>
       <div class="row" style="margin-top:10px">
         <button class="btn" id="wtstart">${hasPending?'Davom etish':'Boshlash'}</button>
       </div>`;
@@ -11598,7 +11598,7 @@ function screenTeacherPanel(){
   const gate=WTGATES[WT.id];
   const holat = gate===undefined ? 'tekshirilmoqda...' :
                 gate===null ? "bog'lanib bo'lmadi" :
-                gate.open ? `OCHIQ · yopilishiga ~${Math.max(0,Math.round((gate.until-Date.now())/60000))} daqiqa`
+                gate.open ? (gate.until-Date.now()>365*864e5 ? 'OCHIQ · muddatsiz (sayt kodida ochilgan)' : `OCHIQ · yopilishiga ~${Math.max(0,Math.round((gate.until-Date.now())/60000))} daqiqa`)
                             : 'YOPIQ';
   app.innerHTML=`<div class="card">
       <h2>Ustoz paneli</h2>
