@@ -1011,9 +1011,9 @@ function screenSets(){
       ${(()=>{ const wt=wtBySecId(SEC); if(!wt) return '';
         return `<div class="sets" style="margin-top:12px">
         <button class="set" id="towt">
-          <div class="n" style="font-size:20px">🔒 ${wt.title}</div>
+          <div class="n" style="font-size:20px">${wt.title}</div>
           <div class="m">${wt.choose+wt.write} ta savol tasodifiy tanlanadi</div>
-          <div class="m" style="color:var(--muted)">Ustoz ruxsat berganda ochiladi</div>
+          <div class="m" style="color:var(--muted)">Doim ochiq</div>
         </button>
       </div>`; })()}
     </div>
@@ -11703,7 +11703,7 @@ function screenMasterWords(n, type){
           '<div class="m">'+rounds(s).length+" raund · har raundda 10 ta so'z · 4 bosqich"+
           (st.done?' · '+st.ok+'/'+st.all+" to'g'ri":'')+'</div></button>'+
         (wt?('<button class="set" data-go="exam"><div class="n" style="font-size:22px">시험 보기</div>'+
-          '<div class="m">50 ta savol · har biriga 5 soniya · ustoz ruxsati kerak'+
+          '<div class="m">50 ta savol · har biriga 5 soniya · doim ochiq'+
           (done?' · '+done+' marta ishlangan':'')+'</div></button>')
           :'<button class="set" disabled style="opacity:.45"><div class="n" style="font-size:22px">시험 보기</div><div class="m">준비 중</div></button>')+
       '</div>'+
@@ -13232,7 +13232,7 @@ function ssScreenHub(){
   </div>
   <div class="card ss-card">
     <h3>쓰기 so'z testi</h3>
-    <p class="hint">Barcha 쓰기 so'zlaridan (51~54) bitta test — ustoz ruxsat berganda ochiladi.</p>
+    <p class="hint">Barcha 쓰기 so'zlaridan (51~54) bitta test — doim ochiq.</p>
     <div class="row" style="margin-top:10px"><button class="btn" id="sswt">So'z testiga o'tish</button></div>
   </div>
   <div class="card ss-card">
