@@ -1,0 +1,77 @@
+/* Pen tool of the GETTOPIK teacher panel — styles. 1) toolbar + colour popup, 2) ink layers (_ink.js), 3) laser */
+/* --- draw tool: a full-screen ink overlay (fixed to the viewport, not the scrolled page) so a
+   teacher can circle/underline whatever is currently on screen while explaining, same idea as
+   Edge's own "Draw" toolbar. Scrolling clears the ink (a fresh page should start with a clean
+   slate rather than carry stray marks over new content). --- */
+#draw-canvas { position:fixed; inset:0; z-index:600; pointer-events:none; touch-action:none; }
+#draw-toolbar {
+  position:fixed; right:16px; bottom:58px; z-index:650;
+  display:flex; align-items:center; gap:6px;
+  background:#fff; border:1px solid #DDE3EC; border-radius:999px;
+  padding:6px; box-shadow:0 10px 30px rgba(0,0,0,.18);
+  font-family: Calibri, Arial, sans-serif;
+}
+.draw-btn {
+  width:38px; height:38px; border-radius:50%; border:none; background:#F4F6FA; flex:none;
+  color:#3A4658; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  transition:background .12s ease, color .12s ease, transform .1s ease; padding:0;
+}
+.draw-btn:hover { background:#EAF1FC; }
+.draw-btn:active { transform:scale(0.93); }
+.draw-btn svg { width:19px; height:19px; }
+.draw-btn.active { background:#0F4CA3; color:#fff; }
+.draw-toggle-text { width:auto; padding:0 15px; border-radius:19px; font-size:12.5px; font-weight:700; }
+.draw-toggle-text.on { background:#0F4CA3; color:#fff; }
+#draw-clear-btn { color:#B4780A; }
+#draw-clear-btn:hover { background:#FFF3DE; }
+
+#draw-color-pop {
+  position:fixed; z-index:660; background:#fff; border:1px solid #DDE3EC; border-radius:14px;
+  padding:12px; box-shadow:0 10px 30px rgba(0,0,0,.2); display:none; flex-direction:column; gap:10px;
+  width:186px; font-family: Calibri, Arial, sans-serif;
+}
+#draw-color-pop.open { display:flex; }
+#draw-color-pop .type-row { display:flex; gap:8px; }
+#draw-color-pop .type-btn {
+  flex:1; height:32px; border-radius:8px; border:1.5px solid #DDE3EC; background:#F4F6FA;
+  cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; color:#3A4658; padding:0;
+  font-size:11.5px; font-weight:700;
+}
+#draw-color-pop .type-btn.active { border-color:#3D80E8; background:#EAF1FC; color:#0F4CA3; }
+#draw-color-pop .type-btn svg { width:14px; height:14px; flex:none; }
+#draw-color-pop .color-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; justify-items:center; }
+#draw-color-pop .swatch {
+  width:22px; height:22px; border-radius:50%; border:1px solid rgba(0,0,0,.08); box-shadow:0 0 0 2px transparent; cursor:pointer; padding:0; flex:none;
+}
+#draw-color-pop .swatch.active { box-shadow:0 0 0 2px #0F4CA3; }
+#draw-color-pop .thickness-row { display:flex; align-items:center; gap:7px; }
+#draw-color-pop .thickness-row input[type=range] { flex:1; accent-color:#0F4CA3; }
+#draw-color-pop .thickness-label { font-size:9.5px; color:#8A94A6; white-space:nowrap; }
+
+/* ---- ink (_ink.js) ---- */
+#draw-canvas{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;outline:none}
+html.ink-on #stage-outer,html.ink-on #stage-outer *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
+#draw-canvas.ink-marking{mix-blend-mode:multiply;opacity:.5}
+#ink-layers{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none}
+.ink-layer{position:absolute;pointer-events:none;z-index:40}
+.ink-layer.ink-mark{mix-blend-mode:multiply;opacity:.5;z-index:39}
+.ink-sharp{position:fixed;left:0;top:0;pointer-events:none;display:none}
+html.ink-sharp-on .ink-layer{visibility:hidden}
+#ink-tail{position:fixed;left:0;top:0;z-index:600;pointer-events:none}
+html.gp-on #ink-tail{z-index:960}
+html.gp-on .ink-sharp{z-index:955}
+html.gp-on #draw-canvas{z-index:960}
+html.gp-on #laser-canvas{z-index:961}
+html.gp-on #draw-toolbar{z-index:970}
+html.gp-on #draw-color-pop{z-index:980}
+#gp .stage{overflow-x:hidden}
+.ink-sharp-mark{mix-blend-mode:multiply;opacity:.5}
+#draw-color-pop{width:210px}
+#draw-color-pop .nib-row{display:flex;gap:6px}
+#draw-color-pop .nib-btn{flex:1 1 0;min-width:0;border-radius:8px;border:1.5px solid #DDE3EC;background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 0 3px;color:#3A4658;font:700 10px/1.15 Calibri,Arial,sans-serif;white-space:nowrap}
+#draw-color-pop .nib-btn.active{border-color:#3D80E8;background:#EAF1FC;color:#0F4CA3}
+#draw-color-pop .nib-btn svg{width:30px;height:19px;flex:none}
+
+/* ---- laser (_laser.js) ---- */
+#laser-canvas{position:fixed;inset:0;z-index:601;pointer-events:none}
+#draw-pen-btn.laser{background:#E8264A;color:#fff}

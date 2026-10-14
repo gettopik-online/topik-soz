@@ -1,0 +1,8 @@
+/* topik-soz: the pages scroll with the window itself, so the ink layers live in <body> —
+   they must not make the page wider than the screen */
+#ink-layers { width: 100%; overflow-x: clip; overflow-y: visible; }
+@media print {
+  #draw-canvas, #draw-toolbar, #draw-color-pop, #laser-canvas, #ink-tail, .ink-sharp, #ink-layers { display: none !important; }
+}
+/* the browser's own audio player (play, seek, volume) stays usable while the pen is on */
+html.ink-on audio[controls] { position: relative; z-index: 610; }

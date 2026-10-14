@@ -2,6 +2,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap">
+<link rel="stylesheet" href="../qalam/qalam.css">
+<link rel="stylesheet" href="../qalam/qalam_sayt.css">
 <style>
 /* Layout: one presentation stage per screen; header picks the word pair, footer steps through reveals. */
 :root {
@@ -26,7 +28,7 @@ body {
   margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font);
   font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased;
 }
-.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 18px 28px; display: flex; flex-direction: column; gap: 16px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 18px 110px; display: flex; flex-direction: column; gap: 16px; }
 
 /* header */
 .top { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; }
@@ -114,6 +116,8 @@ body {
 
 /* footer controls */
 .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+/* the pen's toolbar sits bottom-right: keep the slide buttons clear of it */
+@media (min-width: 700px) { .controls { padding-right: 290px; } }
 .btn { font: inherit; font-weight: 700; cursor: pointer; border-radius: 999px; padding: 10px 22px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
 .btn.primary { background: var(--blue); border-color: var(--blue); color: var(--on-blue); }
 .btn:disabled { opacity: .4; cursor: default; }
@@ -274,6 +278,7 @@ function render() {
   const key = state.p + ":" + state.s;
   if (key !== built) {
     stage.innerHTML = sceneHTML(state.p, state.s);
+    stage.firstElementChild.classList.add("page");   // each slide is a page for the pen: its ink goes when the slide goes
     built = key;
   }
   stage.querySelectorAll(".reveal").forEach(el => el.classList.toggle("on", +el.dataset.step <= state.k));
@@ -311,7 +316,14 @@ PAIRS.forEach((d, i) => {
   tabs.appendChild(b);
 });
 
-stage.addEventListener("click", e => { if (!e.target.closest("a, button")) next(); });
+// a drag (e.g. the laser drawn with the mouse) is not a click on the slide
+let downAt = null;
+stage.addEventListener("pointerdown", e => { downAt = [e.clientX, e.clientY]; });
+stage.addEventListener("click", e => {
+  const moved = downAt && e.isTrusted && Math.abs(e.clientX - downAt[0]) + Math.abs(e.clientY - downAt[1]) > 8;
+  downAt = null;
+  if (!moved && !e.target.closest("a, button")) next();
+});
 document.getElementById("next").addEventListener("click", next);
 document.getElementById("prev").addEventListener("click", prev);
 document.addEventListener("keydown", e => {
@@ -328,4 +340,67 @@ window.addEventListener("hashchange", () => {
 });
 render();
 </script>
+
+<!-- Chizish: GETTOPIK o'qituvchi panelining yozish asbobi (../qalam) -->
+<canvas id="draw-canvas"></canvas>
+<div id="draw-toolbar">
+  <button type="button" id="draw-pen-btn" class="draw-btn" title="Qalam / marker">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 12l7.5 1.5L18 13z"/></svg>
+  </button>
+  <button type="button" id="draw-toggle-btn" class="draw-btn draw-toggle-text" title="Chizishni yoqish/o'chirish">Chizish</button>
+  <button type="button" id="draw-eraser-btn" class="draw-btn" title="O'chirg'ich">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H8l-6-6a2 2 0 0 1 0-2.8L13 2.4a2 2 0 0 1 2.8 0l5.6 5.6a2 2 0 0 1 0 2.8L14 18"/><path d="M8 20l6-6"/></svg>
+  </button>
+  <button type="button" id="draw-clear-btn" class="draw-btn" title="Hammasini tozalash">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"/></svg>
+  </button>
+</div>
+<div id="draw-color-pop">
+  <div class="type-row">
+    <button type="button" class="type-btn active" data-type="pen" title="Qalam">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 12l7.5 1.5L18 13z"/></svg>
+      <span>Qalam</span>
+    </button>
+    <button type="button" class="type-btn" data-type="marker" title="Marker">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l3-3 9-9 3 3-9 9-3 3H4v-3z"/><path d="M14 5l5 5"/></svg>
+      <span>Marker</span>
+    </button>
+  </div>
+  <div class="color-grid">
+    <button type="button" class="swatch active" data-color="#1a1a2e" style="background:#1a1a2e"></button>
+    <button type="button" class="swatch" data-color="#4a4f5c" style="background:#4a4f5c"></button>
+    <button type="button" class="swatch" data-color="#9AA1AC" style="background:#9AA1AC"></button>
+    <button type="button" class="swatch" data-color="#ffffff" style="background:#ffffff"></button>
+    <button type="button" class="swatch" data-color="#E8264A" style="background:#E8264A"></button>
+    <button type="button" class="swatch" data-color="#F5730A" style="background:#F5730A"></button>
+    <button type="button" class="swatch" data-color="#F5A524" style="background:#F5A524"></button>
+    <button type="button" class="swatch" data-color="#0E9F6E" style="background:#0E9F6E"></button>
+    <button type="button" class="swatch" data-color="#14B8A6" style="background:#14B8A6"></button>
+    <button type="button" class="swatch" data-color="#1D4ED8" style="background:#1D4ED8"></button>
+    <button type="button" class="swatch" data-color="#6366F1" style="background:#6366F1"></button>
+    <button type="button" class="swatch" data-color="#9333EA" style="background:#9333EA"></button>
+    <button type="button" class="swatch" data-color="#EC4899" style="background:#EC4899"></button>
+    <button type="button" class="swatch" data-color="#92400E" style="background:#92400E"></button>
+    <button type="button" class="swatch" data-color="#DB2777" style="background:#DB2777"></button>
+    <button type="button" class="swatch" data-color="#38BDF8" style="background:#38BDF8"></button>
+  </div>
+  <div class="thickness-row">
+    <span class="thickness-label">Ingichka</span>
+    <input type="range" id="draw-thickness" min="1" max="10" step="0.5" value="3.2">
+    <span class="thickness-label">Qalin</span>
+  </div>
+</div>
+<script>
+// a tap on the slide itself (it moves the slide on) is the slide's own button
+window.INK_TAPPABLE = "#stage";
+// the pen's buttons must not keep the keyboard: Space / Enter move the slides
+document.addEventListener("click", e => {
+  if (e.target.closest && e.target.closest("#draw-toolbar, #draw-color-pop"))
+    setTimeout(() => { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }, 0);
+}, true);
+</script>
+<script src="../qalam/qalam_toolbar.js"></script>
+<script src="../qalam/qalam_sayt.js"></script>
+<script src="../qalam/laser.js"></script>
+<script src="../qalam/ink.js"></script>
 </body></html>
